@@ -80,7 +80,7 @@ Only bit 0 can produce HALT. Everything else is CAUTION, which no adapter acts o
 |---|---|---|---|
 | Owner | `0xf9946775891a24462cD4ec885d0D4E2675C84355` (one key; `transferOwnership` then `acceptOwnership` moves it to a Safe) | accept a new minter set (clears bit 3); change the reporter; schedule, cancel and execute a release | cause HALT; release a HALT sooner than 6 h after scheduling, or after supply grew since scheduling |
 | Reporter | same key | post monthly KPMG figures with the report's SHA-256, for periods that have already ended | cause HALT |
-| Keeper | anyone; a GitHub Actions job runs every 10 minutes from `0x17e8385CF200E07d97788368CC7A78094807AE6B` | call `checkpoint()` | anything else |
+| Keeper | anyone; a GitHub Actions job (scheduled every 15 minutes; GitHub runs schedules best-effort) from `0x17e8385CF200E07d97788368CC7A78094807AE6B` | call `checkpoint()` | anything else |
 
 ### Releasing a HALT
 

@@ -4,7 +4,7 @@ name: checkpoint
 # KEEPER_KEY holds gas money only; it has no role on the guard.
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "4,19,34,49 * * * *" # off the round minutes, where GitHub drops the most scheduled runs
   workflow_dispatch:
 permissions:
   contents: read
