@@ -15,3 +15,6 @@ remappings = [
 robinhood = "https://rpc.mainnet.chain.robinhood.com"
 robinhood_testnet = "https://rpc.testnet.chain.robinhood.com"
 arbitrum_sepolia = "https://sepolia-rollup.arbitrum.io/rpc"
+
+[invariant]
+fail_on_revert = true

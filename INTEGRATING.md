@@ -103,4 +103,4 @@ Watch `ReleaseScheduled` on the guard. A release you disagree with gives you 6 h
 - **Long gaps.** If no checkpoint runs for more than 2 days, both references expire and a mint in that gap is not compared against anything. The status shows bit 2 (CAUTION) the whole time.
 - **One chain only.** Supply minted on other chains is invisible to this guard.
 - **Upgrades are not detected.** The USDG contract exposes no implementation getter on chain.
-- **Not audited.** There are 51 unit tests (including two 2,000-run fuzz tests) and 4 mainnet-fork tests, and Slither reports no High or Medium findings. That is not an audit.
+- **Not audited.** What was run: 52 unit tests, 6 random-sequence properties (256 runs each, reverts counted as failures), 5 Halmos symbolic proofs (reporter and owner never halt; HALT exactly above +25%; release needs 6 h and no growth; a latch clears only on a burn), 4 mainnet-fork tests, Slither and Aderyn (no real findings above Low after triage), and three rounds of adversarial review. That is not an audit.

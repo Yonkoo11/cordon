@@ -62,3 +62,31 @@ contract RevertingGuard {
         revert("down");
     }
 }
+
+/// @notice A hostile token whose totalSupply tries to call back into the guard.
+contract ReentrantToken {
+    address public supplyControl;
+    address public target;
+    uint256 internal _supply;
+
+    constructor(address sc, uint256 supply) {
+        supplyControl = sc;
+        _supply = supply;
+    }
+
+    function arm(address guard) external {
+        target = guard;
+    }
+
+    function totalSupply() external returns (uint256) {
+        if (target != address(0)) {
+            (bool ok,) = target.call(abi.encodeWithSignature("checkpoint()"));
+            require(ok, "reentry blocked");
+        }
+        return _supply;
+    }
+
+    function pendingDefaultAdmin() external pure returns (address, uint48) {
+        return (address(0), 0);
+    }
+}

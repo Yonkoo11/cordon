@@ -70,7 +70,7 @@ No key, no wallet, no RPC account. Every line below was run on a fresh clone fro
 ```bash
 git clone --recurse-submodules https://github.com/Yonkoo11/cordon && cd cordon
 forge test --no-match-path "test/fork/*"
-# → 51 tests passed, 0 failed, 0 skipped (51 total tests)
+# → 59 tests passed, 0 failed, 0 skipped (59 total tests): 52 unit, 6 random-sequence (invariant), 1 release-path check
 forge test --match-path test/fork/OverMint.t.sol --fork-url https://rpc.mainnet.chain.robinhood.com -vv
 # → [PASS] test_healthyAllowsBorrow()  level 0  reasons 0  borrow succeeded
 # → [PASS] test_overMintHaltsBorrow()  level 2  reasons 1  borrow reverted
@@ -150,7 +150,7 @@ flowchart LR
 | Other chains (Ethereum, Solana, X Layer, Ink, Mantle) | Not checked. Supply minted elsewhere is invisible to this guard. |
 | Contract upgrades | Not detected. USDG exposes no onchain getter for its implementation. |
 | Owner key | One key today. `transferOwnership` / `acceptOwnership` exist to move it to a Safe. |
-| Audit | Not audited. Three rounds of adversarial review found five gaps (slow over-mint, checkpoint gap, anchor moved by the halting checkpoint, timing around the daily advance, long halt then burn); all fixed with tests. Slither reports no High or Medium findings. That is not an audit. |
+| Audit | Not audited. What was run instead: 52 unit tests (two 2,000-run fuzz tests); 6 random-sequence (invariant) properties, 256 runs of up to 500 calls each with any revert counted as a failure; 5 symbolic proofs with Halmos that hold for every input (a deliberately wrong claim was checked to fail); Slither and Aderyn (Aderyn's 2 Highs are false positives: one disproved by `test_tokenCannotReenter`, one needs two variable-length inputs and has one); three rounds of adversarial review, five gaps found and fixed. No audit, no third-party review. |
 
 ## Deployments
 
@@ -166,7 +166,7 @@ flowchart LR
 Transactions, blocks and the superseded first version: [`DEPLOYMENTS.md`](DEPLOYMENTS.md).
 
 ## Tech stack
-- **Contracts:** Solidity 0.8.26, Foundry. **Tests:** 51 unit (including two 2,000-run fuzz tests) in CI, plus 4 mainnet-fork tests.
+- **Contracts:** Solidity 0.8.26, Foundry. **Tests:** 52 unit and 6 random-sequence properties in CI, 5 Halmos symbolic proofs, plus 4 mainnet-fork tests.
 - **Site:** static pages, no framework, reading the chain over JSON-RPC from the browser; `use.html` writes through the visitor's own wallet.
 - **Chain:** Robinhood Chain mainnet; Arbitrum Sepolia.
 
@@ -178,7 +178,9 @@ src/
   CordonOracleFactory.sol  # deploys wrappers at predictable addresses
   interfaces/IPaxos.sol    # the parts of Paxos' USDG and SupplyControl Cordon reads
 test/
-  unit/                    # 51 tests against mocks, including two fuzz tests
+  unit/                    # 52 tests against mocks, including two fuzz tests
+  invariant/               # random sequences of mints, burns, keeper, reporter and owner actions
+  halmos/                  # symbolic proofs: run `forge build --ast && halmos --match-contract CordonGuardHalmos`
   fork/OverMint.t.sol      # Robinhood Chain mainnet fork: healthy, over-mint, repay and liquidate, bridge-in release
 script/                    # Deploy, DeployMarket, Checkpoint (key from env DEPLOYER_PRIVATE_KEY)
 attestations/2026-08.json  # the KPMG figures posted on chain, with the PDF's SHA-256

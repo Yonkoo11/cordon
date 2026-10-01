@@ -4,7 +4,7 @@ pragma solidity 0.8.26;
 import {Test} from "forge-std/Test.sol";
 import {CordonGuard} from "../../src/CordonGuard.sol";
 import {IPaxosToken} from "../../src/interfaces/IPaxos.sol";
-import {MockPaxosToken, MockSupplyControl} from "../mocks/MockPaxos.sol";
+import {MockPaxosToken, MockSupplyControl, ReentrantToken} from "../mocks/MockPaxos.sol";
 
 contract CordonGuardTest is Test {
     MockPaxosToken internal token;
@@ -482,5 +482,17 @@ contract CordonGuardTest is Test {
         assertEq(anchorSupply, BASE);
         token.setSupply(126e6);
         assertTrue(guard.isHalted(), "growth past +25% of the pre-jump supply must halt");
+    }
+
+    /// @dev Aderyn flags "state change after external call" on every totalSupply() read. The reads
+    ///      go through a `view` interface, so Solidity uses STATICCALL and a token cannot re-enter.
+    function test_tokenCannotReenter() public {
+        ReentrantToken bad = new ReentrantToken(address(sc), BASE);
+        CordonGuard g = new CordonGuard(IPaxosToken(address(bad)), owner, reporter, 2500, 1500, 1800, 7200, 62 days, 6 hours);
+        bad.arm(address(g));
+        vm.expectRevert(bytes("reentry blocked"));
+        g.checkpoint();
+        (uint128 anchorSupply,) = g.anchor();
+        assertEq(anchorSupply, 0, "no state was written");
     }
 }

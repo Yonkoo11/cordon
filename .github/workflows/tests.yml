@@ -12,3 +12,9 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
       - run: forge build
       - run: forge test --no-match-path "test/fork/*" -vv
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install halmos==0.3.3
+      - run: forge build --ast --force
+      - run: halmos --match-contract CordonGuardHalmos
