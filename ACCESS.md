@@ -20,7 +20,7 @@ Every line is something outside this machine. Every line has a fallback tier tha
 
 ## Submission requirements
 
-- [ ] HackQuest registration (3 pages) — needed for: being allowed to submit — how: register URL above — cost: free — eta: 10 min — fallback: none; this is the user's action
+- [x] HackQuest registration (3 pages, completed by the user 2026-10-01) — needed for: being allowed to submit — how: register URL above — cost: free — eta: 10 min — fallback: none; this is the user's action
 - [ ] Public GitHub repo under Yonkoo11 — needed for: "which code was produced during the Buildathon" — how: gh repo create (user's go) — cost: free — eta: 2 min — fallback: private repo shared with the reviewer account HackQuest names for stealth builds
 - [ ] Live frontend URL — needed for: required submission field — how: Vercel or GitHub Pages — cost: free — eta: 15 min — fallback: GitHub Pages static page reading the chain from the browser
 

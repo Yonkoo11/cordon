@@ -6,7 +6,7 @@ const SUPPLY_CONTROL = '0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4';
 const PUBLISHED = '2026-09-25'; // KPMG report publication date; not onchain
 const TIMEOUT_MS = 8000;
 const REFRESH_MS = 60000;
-const DASH = '—';
+const DASH = '…';
 
 // selectors from `cast sig`
 const SEL = {
