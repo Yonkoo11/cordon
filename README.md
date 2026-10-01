@@ -22,9 +22,9 @@ Built for the Arbitrum Open House Singapore Buildathon (Overall and Promising Pr
 
 ## Screens
 
-| The status page, reading Robinhood Chain mainnet in the browser | The first version of the page with only the guard's `status()` answer replaced by HALT, to show that state (simulated) | The fork test output, published as is |
+| The status page, reading Robinhood Chain mainnet in the browser (HEALTHY, 2026-10-01 19:22 UTC): the supply change drawn against the +15% caution tick and the +25% halt line | The first version of the page with only the guard's `status()` answer replaced by HALT, to show that state (simulated) | The fork test output, published as is |
 |---|---|---|
-| ![live page](docs/images/live-caution.png) | ![simulated halt](docs/images/halt-simulated.png) | ![replay](docs/images/replay.png) |
+| ![live page](docs/images/live.png) | ![simulated halt](docs/images/halt-simulated.png) | ![replay](docs/images/replay.png) |
 
 ---
 
