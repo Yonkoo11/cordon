@@ -40,3 +40,4 @@ lib/forge-std/
 probe/reports/*.pdf
 probe/*.sol
 probe/mints.jsonl
+REGISTRATION.md
