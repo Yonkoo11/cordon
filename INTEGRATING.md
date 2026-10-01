@@ -6,8 +6,8 @@ This is for curators and protocol teams who take Paxos USDG as collateral on Rob
 
 | Contract | Address |
 |---|---|
-| CordonGuard (watches USDG `0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`) | `0x1F82E5aB72B6Ec93e852533Ed9D021CbF51969AC` |
-| CordonOracleFactory | `0xA0A564D5C2D8c8E01191Cb70E39322E85B1045EF` |
+| CordonGuard (watches USDG `0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`) | `0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25` |
+| CordonOracleFactory | `0x5fd6b1Bf1871BD987c5c5AC451AaDeC7e70679De` |
 | Morpho | `0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010` |
 
 All are verified on Sourcify. Arbitrum Sepolia test deployments are listed in [`DEPLOYMENTS.md`](DEPLOYMENTS.md).
@@ -52,7 +52,7 @@ A larger discount gives more protection against borrowing with unbacked USDG. It
 Read the guard directly. Both calls are `view`.
 
 ```solidity
-CordonGuard guard = CordonGuard(0x1F82E5aB72B6Ec93e852533Ed9D021CbF51969AC);
+CordonGuard guard = CordonGuard(0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25);
 if (guard.isHalted()) revert UsdgHalted();          // the only signal that should move money
 (CordonGuard.Level level, uint256 reasons) = guard.status(); // for dashboards and alerts
 ```
@@ -65,7 +65,7 @@ Only bit 0 can produce HALT. Everything else is CAUTION, which no adapter acts o
 
 | Bit | Meaning | Source | Level |
 |---|---|---|---|
-| 0 | Supply rose more than 25% above the hourly baseline (30 min to 2 h old) or the daily anchor (up to 2 days old), or a jump is latched | chain | HALT |
+| 0 | Supply rose more than 25% above the hourly baseline (30 min to 2 h old) or either daily anchor (up to 2 days old), or a jump is latched | chain | HALT |
 | 1 | Supply rose 15 to 25% above the hourly baseline | chain | CAUTION |
 | 2 | No hourly baseline in range | chain | CAUTION |
 | 3 | The set of addresses allowed to mint USDG changed | chain | CAUTION |
@@ -99,8 +99,8 @@ Watch `ReleaseScheduled` on the guard. A release you disagree with gives you 6 h
   - **What it lasts:** HALT holds until they bridge out again or a release executes.
   - **What it can gain them:** only liquidations of positions between `L × (1 − d)` and `L`.
   - **Why we accept it:** catching an over-mint in the same block, before anyone can borrow against it, matters more to us. A small discount limits what this costs your borrowers.
-- **Slow over-minting is bounded, not blocked.** The daily anchor stops anyone walking supply up past 25% in a day. Up to 25% a day is still possible without HALT, and bits 1 and 2 will show CAUTION along the way.
+- **Slow over-minting is bounded, not blocked.** The two daily anchors stop a walk of many small mints. With the keeper running, the most supply can grow without HALT is +25.0% in any 24 hours and +56.2% in 48 hours (measured by an adversarial test). Bit 1 shows CAUTION along the way. While a jump is latched no reference moves, and a burn that clears it re-anchors at the pre-jump supply.
 - **Long gaps.** If no checkpoint runs for more than 2 days, both references expire and a mint in that gap is not compared against anything. The status shows bit 2 (CAUTION) the whole time.
 - **One chain only.** Supply minted on other chains is invisible to this guard.
 - **Upgrades are not detected.** The USDG contract exposes no implementation getter on chain.
-- **Not audited.** There are 46 unit tests (including two 2,000-run fuzz tests) and 4 mainnet-fork tests, and Slither reports no High or Medium findings. That is not an audit.
+- **Not audited.** There are 51 unit tests (including two 2,000-run fuzz tests) and 4 mainnet-fork tests, and Slither reports no High or Medium findings. That is not an audit.

@@ -1,33 +1,33 @@
 No files changed, compilation skipped
 
 Ran 4 tests for test/fork/OverMint.t.sol:OverMintForkTest
-[PASS] test_bridgeInReleasedAfterNotice() (gas: 473469)
+[PASS] test_bridgeInReleasedAfterNotice() (gas: 457028)
 Logs:
   bridge-in of 200M latched HALT
-  after 6 h notice and release, level 0
+  after 6 h notice and release, level 1
   borrow succeeded after release 162731911332590981775
 
-[PASS] test_healthyAllowsBorrow() (gas: 290181)
+[PASS] test_healthyAllowsBorrow() (gas: 292914)
 Logs:
-  block 77358393
-  usdg supply 685558411663483
+  block 77369879
+  usdg supply 685560410691659
   level 0
   reasons 0
   borrow succeeded 162731911332590981775
 
-[PASS] test_overMintHaltsBorrow() (gas: 278498)
+[PASS] test_overMintHaltsBorrow() (gas: 278376)
 Logs:
-  block 77358393
-  usdg supply 985558411663483
+  block 77369879
+  usdg supply 985560410691659
   level 2
   reasons 1
   borrow reverted
 
-[PASS] test_repayAndLiquidateStillWorkWhenHalted() (gas: 600509)
+[PASS] test_repayAndLiquidateStillWorkWhenHalted() (gas: 602728)
 Logs:
   repay succeeded under HALT
   liquidation succeeded under HALT, seized USDG 1000000000
 
-Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 75.93s (35.65s CPU time)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 74.78s (33.64s CPU time)
 
-Ran 1 test suite in 77.34s (75.93s CPU time): 4 tests passed, 0 failed, 0 skipped (4 total tests)
+Ran 1 test suite in 76.75s (74.78s CPU time): 4 tests passed, 0 failed, 0 skipped (4 total tests)

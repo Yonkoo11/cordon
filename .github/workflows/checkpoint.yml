@@ -12,7 +12,7 @@ concurrency:
   group: checkpoint
   cancel-in-progress: false
 env:
-  GUARD: "0x1F82E5aB72B6Ec93e852533Ed9D021CbF51969AC"
+  GUARD: "0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25"
   RPC: https://rpc.mainnet.chain.robinhood.com
 jobs:
   checkpoint:

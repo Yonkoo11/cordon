@@ -1,6 +1,6 @@
 // Cordon status page: reads Robinhood Chain in the visitor's browser. No wallet, no server.
 const RPC = 'https://rpc.mainnet.chain.robinhood.com';
-const GUARD = '0x1F82E5aB72B6Ec93e852533Ed9D021CbF51969AC';
+const GUARD = '0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25';
 const USDG = '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168';
 const SUPPLY_CONTROL = '0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4';
 const PUBLISHED = '2026-09-25'; // KPMG report publication date; not onchain

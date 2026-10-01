@@ -59,7 +59,7 @@ One guard per token per chain, and adapters that act on it. The loop:
 
 1. **Read.** `CordonGuard.status()` reads the USDG token (`totalSupply`, `pendingDefaultAdmin`) and Paxos' SupplyControl (`getAllSupplyControllerAddresses`, `pendingDefaultAdmin`) in the same call.
 2. **Check.** Supply against a baseline taken 30 minutes to 2 hours earlier; the minter set against the recorded one; pending admin transfers; the latest KPMG figures posted with the report's SHA-256.
-3. **Decide.** HALT only when supply read from the chain rises more than 25% above the hourly baseline (30 min to 2 h old) or the daily anchor (moved at most once a day). Everything else, including every figure our reporter posts, is CAUTION, which never touches price. So no key we hold can cause a HALT.
+3. **Decide.** HALT only when supply read from the chain rises more than 25% above the hourly baseline (30 min to 2 h old) or either of the last two daily anchors (moved at most once a day, never during a halt). Everything else, including every figure our reporter posts, is CAUTION, which never touches price. So no key we hold can cause a HALT.
 4. **Latch and release.** A HALT stays latched until the excess is burned. If the jump was legitimate (a large bridge-in), the owner can release it only after six hours of public notice, and only if supply has not grown since.
 5. **Act.** `CordonOracleFactory.create(oracle, discount)` wraps a market's existing oracle. The wrapper discounts USDG collateral on HALT by a share the market creator sets, and never reverts, so repaying and liquidating keep working. [`use.html`](https://yonkoo11.github.io/cordon/use.html) does it from a browser wallet.
 
@@ -70,13 +70,13 @@ No key, no wallet, no RPC account. Every line below was run on a fresh clone fro
 ```bash
 git clone --recurse-submodules https://github.com/Yonkoo11/cordon && cd cordon
 forge test --no-match-path "test/fork/*"
-# → 46 tests passed, 0 failed, 0 skipped (46 total tests)
+# → 51 tests passed, 0 failed, 0 skipped (51 total tests)
 forge test --match-path test/fork/OverMint.t.sol --fork-url https://rpc.mainnet.chain.robinhood.com -vv
 # → [PASS] test_healthyAllowsBorrow()  level 0  reasons 0  borrow succeeded
 # → [PASS] test_overMintHaltsBorrow()  level 2  reasons 1  borrow reverted
 # → [PASS] test_repayAndLiquidateStillWorkWhenHalted()  repay succeeded under HALT; liquidation seized 1000000000 (1,000 USDG)
 # → [PASS] test_bridgeInReleasedAfterNotice()  bridge-in of 200M latched HALT; after 6 h notice and release, level 0; borrow succeeded
-cast call 0x1F82E5aB72B6Ec93e852533Ed9D021CbF51969AC "status()(uint8,uint256)" --rpc-url https://rpc.mainnet.chain.robinhood.com
+cast call 0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25 "status()(uint8,uint256)" --rpc-url https://rpc.mainnet.chain.robinhood.com
 # → two numbers: level (0 healthy, 1 caution, 2 halt) and the reason bits (see INTEGRATING.md).
 ```
 
@@ -87,10 +87,10 @@ The fork test runs against Robinhood Chain mainnet state at the latest block: th
 ## The headline result
 
 ```
-[PASS] test_overMintHaltsBorrow() (gas: 278498)
+[PASS] test_overMintHaltsBorrow() (gas: 278376)
 Logs:
-  block 77358393
-  usdg supply 985558411663483
+  block 77369879
+  usdg supply 985560410691659
   level 2
   reasons 1
   borrow reverted
@@ -127,7 +127,7 @@ flowchart LR
 | HALT jump | +25% against the hourly baseline (30 min to 2 h old) or the daily anchor | 12,414 mint and 9,047 burn events decoded from chain launch; once supply passed 300M the largest rise was +11.9% in an hour, +13.2% in a day and +20.4% in two days |
 | CAUTION jump | +15% | between the largest observed rise and HALT |
 | Baseline window | 30 min to 2 h | one window holds every observed legitimate rise; older baselines read as "no baseline" (CAUTION), never HALT |
-| Daily anchor | moves at most once per day; ignored after 2 days | stops a walk of many sub-25% mints, each checkpointed (found in review; `test_slowOverMintHaltsOnAnchor`) |
+| Daily anchors | today's and the previous day's; each moves at most once a day, never during a halt, and is ignored after 2 days | stops a walk of many sub-25% mints, each checkpointed (found in review). Measured ceiling with the keeper running: +25.0% in any 24 h, +56.2% in 48 h, against a legitimate maximum of +13.2% and +20.4% |
 | Release notice | 6 h, and supply must not grow during it | longer than the 2 h baseline window, so the pre-jump baseline has expired before a release can run |
 | Stale report | 62 days after period end | Paxos publishes monthly (the August report came 25 days after period end) |
 | Mint capacity on this chain | 500M + 1B + 200M + 10 USDG | `getSupplyControllerConfig` on Paxos' SupplyControl, read 2026-10-01 |
@@ -150,23 +150,23 @@ flowchart LR
 | Other chains (Ethereum, Solana, X Layer, Ink, Mantle) | Not checked. Supply minted elsewhere is invisible to this guard. |
 | Contract upgrades | Not detected. USDG exposes no onchain getter for its implementation. |
 | Owner key | One key today. `transferOwnership` / `acceptOwnership` exist to move it to a Safe. |
-| Audit | Not audited. An adversarial review found a slow over-mint gap and a checkpoint-gap gap, both fixed with tests; Slither reports no High or Medium findings. That is not an audit. |
+| Audit | Not audited. Three rounds of adversarial review found five gaps (slow over-mint, checkpoint gap, anchor moved by the halting checkpoint, timing around the daily advance, long halt then burn); all fixed with tests. Slither reports no High or Medium findings. That is not an audit. |
 
 ## Deployments
 
 | Chain | Contract | Address |
 |---|---|---|
-| Robinhood Chain (4663) | CordonGuard | [`0x1F82E5aB72B6Ec93e852533Ed9D021CbF51969AC`](https://robinhoodchain.blockscout.com/address/0x1F82E5aB72B6Ec93e852533Ed9D021CbF51969AC) |
-| Robinhood Chain (4663) | CordonOracleFactory | [`0xA0A564D5C2D8c8E01191Cb70E39322E85B1045EF`](https://robinhoodchain.blockscout.com/address/0xA0A564D5C2D8c8E01191Cb70E39322E85B1045EF) |
-| Robinhood Chain (4663) | CordonMorphoOracle (via the factory) | [`0x4FAFD0C44fB2757703F9e3F7B28564666Edfd860`](https://robinhoodchain.blockscout.com/address/0x4FAFD0C44fB2757703F9e3F7B28564666Edfd860) |
-| Robinhood Chain (4663) | Morpho market (USDG collateral, NVDA loan, LLTV 62.5%) | id `0xb2f1e172da1fc454a25f9405b0d145cccd603fe56c719d0d5f4ddaf5017b91dc` |
-| Arbitrum Sepolia (421614) | CordonGuard (Paxos test USDG) | [`0xfEbB84BE47b0d440Ba08DaE0f5E3b09B4f989Cf8`](https://sepolia.arbiscan.io/address/0xfEbB84BE47b0d440Ba08DaE0f5E3b09B4f989Cf8) |
-| Arbitrum Sepolia (421614) | CordonOracleFactory | [`0x59a69BAFb6dCc9BF304bBE0583561aDf3B613435`](https://sepolia.arbiscan.io/address/0x59a69BAFb6dCc9BF304bBE0583561aDf3B613435) |
+| Robinhood Chain (4663) | CordonGuard | [`0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25`](https://robinhoodchain.blockscout.com/address/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25) |
+| Robinhood Chain (4663) | CordonOracleFactory | [`0x5fd6b1Bf1871BD987c5c5AC451AaDeC7e70679De`](https://robinhoodchain.blockscout.com/address/0x5fd6b1Bf1871BD987c5c5AC451AaDeC7e70679De) |
+| Robinhood Chain (4663) | CordonMorphoOracle (via the factory) | [`0xaDE3788c6BD7531dD3C424C3A09527175D4F7F82`](https://robinhoodchain.blockscout.com/address/0xaDE3788c6BD7531dD3C424C3A09527175D4F7F82) |
+| Robinhood Chain (4663) | Morpho market (USDG collateral, NVDA loan, LLTV 62.5%) | id `0x10b972d007b83b91ac0846339f829ccdbe06eb03aebe99eef661748e23843af6` |
+| Arbitrum Sepolia (421614) | CordonGuard (Paxos test USDG) | [`0xAdEa3FaE6011c2D275868d1c1933B37BE7648269`](https://sepolia.arbiscan.io/address/0xAdEa3FaE6011c2D275868d1c1933B37BE7648269) |
+| Arbitrum Sepolia (421614) | CordonOracleFactory | [`0xAf7c0Dcee32C08a4b705e32C8F0E6599f1f3B1d5`](https://sepolia.arbiscan.io/address/0xAf7c0Dcee32C08a4b705e32C8F0E6599f1f3B1d5) |
 
 Transactions, blocks and the superseded first version: [`DEPLOYMENTS.md`](DEPLOYMENTS.md).
 
 ## Tech stack
-- **Contracts:** Solidity 0.8.26, Foundry. **Tests:** 46 unit (including two 2,000-run fuzz tests) in CI, plus 4 mainnet-fork tests.
+- **Contracts:** Solidity 0.8.26, Foundry. **Tests:** 51 unit (including two 2,000-run fuzz tests) in CI, plus 4 mainnet-fork tests.
 - **Site:** static pages, no framework, reading the chain over JSON-RPC from the browser; `use.html` writes through the visitor's own wallet.
 - **Chain:** Robinhood Chain mainnet; Arbitrum Sepolia.
 
@@ -178,7 +178,7 @@ src/
   CordonOracleFactory.sol  # deploys wrappers at predictable addresses
   interfaces/IPaxos.sol    # the parts of Paxos' USDG and SupplyControl Cordon reads
 test/
-  unit/                    # 46 tests against mocks, including two fuzz tests
+  unit/                    # 51 tests against mocks, including two fuzz tests
   fork/OverMint.t.sol      # Robinhood Chain mainnet fork: healthy, over-mint, repay and liquidate, bridge-in release
 script/                    # Deploy, DeployMarket, Checkpoint (key from env DEPLOYER_PRIVATE_KEY)
 attestations/2026-08.json  # the KPMG figures posted on chain, with the PDF's SHA-256
