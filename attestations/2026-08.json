@@ -1,0 +1,13 @@
+{
+  "issuer": "Paxos Digital Singapore Pte. Ltd.",
+  "auditor": "KPMG LLP",
+  "reportDate": "2026-08-31T17:00:00-04:00",
+  "periodEndUnix": 1788210000,
+  "published": "2026-09-25",
+  "outstandingTokens": "3340650602",
+  "redemptionAssetsUsd": "3350462467",
+  "excessOverPar": "0.29%",
+  "pdf": "https://framerusercontent.com/assets/Xn1UQwAte85FnsDveIMX0n1qtVM.pdf",
+  "pdfSha256": "0x384778246b4b117dcf136733334532f60fbf9b1001d15b731348c9c22e96e37e",
+  "source": "Exhibit C and Summary, pages 5 and 12; per-chain natively minted tokens, Exhibit A page 8"
+}
