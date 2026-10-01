@@ -151,7 +151,7 @@ contract CordonGuardTest is Test {
         guard.checkpoint(); // sees the jump, latches it
         assertEq(guard.latchedBaseline(), BASE);
         vm.warp(block.timestamp + 1801);
-        guard.checkpoint(); // both slots now hold the inflated supply
+        guard.checkpoint(); // latched: the inflated supply is not recorded as a reference
         vm.warp(block.timestamp + 1801);
         assertTrue(guard.isHalted(), "latched jump must survive rotation");
     }
@@ -406,5 +406,81 @@ contract CordonGuardTest is Test {
     function test_releaseDelayMustCoverBaselineWindow() public {
         vm.expectRevert(CordonGuard.BadParams.selector);
         new CordonGuard(IPaxosToken(address(token)), owner, reporter, 2500, 1500, 1800, 7200, 62 days, 7199);
+    }
+
+    // ------------------------------------------------------------ re-review: references never absorb a jump
+
+    /// @dev Re-review finding: the checkpoint that latched also moved the anchor to the inflated
+    ///      supply, so a small burn cleared the latch and re-minting stayed under the new anchor.
+    function test_latchingCheckpointDoesNotMoveAnchor() public {
+        _healthy();
+        vm.warp(block.timestamp + 1 days); // anchor due to advance
+        token.setSupply(130e6);
+        guard.checkpoint();
+        assertEq(guard.latchedBaseline(), BASE);
+        (uint128 anchorSupply,) = guard.anchor();
+        assertEq(anchorSupply, BASE, "the latching checkpoint must not move the anchor");
+    }
+
+    function test_burnThenRemintStaysBounded() public {
+        _healthy();
+        vm.warp(block.timestamp + 1 days);
+        token.setSupply(BASE * 10 / 7); // 700 -> 1000
+        guard.checkpoint();
+        token.setSupply(BASE * 875 / 700); // burn to exactly +25%: latch clears
+        vm.warp(block.timestamp + 1801);
+        guard.checkpoint();
+        assertEq(guard.latchedBaseline(), 0);
+        token.setSupply(BASE * 900 / 700); // any further mint is over 25% of the pre-attack anchors
+        assertTrue(guard.isHalted());
+    }
+
+    /// @dev With the previous anchor, growth stays within 25% across a daily advance.
+    function test_growthAcrossAnchorAdvanceIsBounded() public {
+        _healthy();
+        token.setSupply(124e6);
+        vm.warp(block.timestamp + 1 days);
+        guard.checkpoint(); // anchor advances to 124, previous anchor holds 100
+        vm.warp(block.timestamp + 1801);
+        token.setSupply(126e6);
+        assertTrue(guard.isHalted(), "+26% over the previous anchor must halt");
+    }
+
+    function test_releaseResetsBothAnchors() public {
+        _healthy();
+        vm.warp(block.timestamp + 1 days);
+        guard.checkpoint(); // previous anchor = 100
+        vm.warp(block.timestamp + 1801);
+        token.setSupply(200e6);
+        guard.checkpoint();
+        vm.prank(owner);
+        guard.scheduleRelease();
+        vm.warp(block.timestamp + 6 hours);
+        vm.prank(owner);
+        guard.executeRelease();
+        assertFalse(guard.isHalted(), "no stale anchor may keep a released market halted");
+        vm.warp(block.timestamp + 1801);
+        guard.checkpoint();
+        assertEq(guard.latchedBaseline(), 0);
+    }
+
+    /// @dev Re-review 3: a latch held past the anchors' 2-day range, then cleared by a burn, must
+    ///      measure later growth from the pre-jump supply.
+    function test_longLatchThenBurnReanchorsAtPreJump() public {
+        _healthy();
+        token.setSupply(200e6);
+        guard.checkpoint();
+        for (uint256 i; i < 150; ++i) { // 75 h of keeper calls while latched
+            vm.warp(block.timestamp + 1801);
+            guard.checkpoint();
+        }
+        token.setSupply(125e6); // burn back to +25%: clears
+        vm.warp(block.timestamp + 1801);
+        guard.checkpoint();
+        assertEq(guard.latchedBaseline(), 0);
+        (uint128 anchorSupply,) = guard.anchor();
+        assertEq(anchorSupply, BASE);
+        token.setSupply(126e6);
+        assertTrue(guard.isHalted(), "growth past +25% of the pre-jump supply must halt");
     }
 }

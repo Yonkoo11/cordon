@@ -69,8 +69,11 @@ contract CordonGuard {
     ///         Clears only when supply falls back within `jumpHaltBps` of it.
     uint128 public latchedBaseline;
 
-    /// @notice Slow reference for HALT: advanced by `checkpoint` at most once per ANCHOR_PERIOD.
+    /// @notice Slow references for HALT: advanced by `checkpoint` at most once per ANCHOR_PERIOD,
+    ///         never from a checkpoint that sees a jump or runs while one is latched. Comparing
+    ///         against the older one bounds undetected growth to `jumpHaltBps` over about two days.
     Baseline public anchor;
+    Baseline public previousAnchor;
 
     Baseline[2] private _slots;
     uint8 private _newest;
@@ -154,11 +157,16 @@ contract CordonGuard {
         uint256 supply = token.totalSupply();
         if (supply > type(uint128).max) revert SupplyTooLarge(supply);
         _updateLatch(supply);
+        emit Checkpointed(supply, nowTs);
+        // An inflated supply must never become a reference: while latched, nothing is recorded.
+        if (latchedBaseline != 0) return;
         uint8 next = _newest == 0 ? 1 : 0;
         _slots[next] = Baseline(uint128(supply), nowTs);
         _newest = next;
-        if (anchor.timestamp < 1 || nowTs - anchor.timestamp >= ANCHOR_PERIOD) anchor = Baseline(uint128(supply), nowTs);
-        emit Checkpointed(supply, nowTs);
+        if (anchor.timestamp < 1 || nowTs - anchor.timestamp >= ANCHOR_PERIOD) {
+            previousAnchor = anchor;
+            anchor = Baseline(uint128(supply), nowTs);
+        }
     }
 
     function postAttestation(
@@ -213,8 +221,9 @@ contract CordonGuard {
         emit ReleaseExecuted(latchedBaseline, supply);
         latchedBaseline = 0;
         _clearRelease();
-        // the released supply is the new normal; the old anchor would re-latch it
+        // the released supply is the new normal; the old anchors would re-latch it
         anchor = Baseline(uint128(supply), uint64(block.timestamp));
+        previousAnchor = anchor;
     }
 
     /// @notice Starts a handover; `address(0)` cancels a pending one.
@@ -246,10 +255,9 @@ contract CordonGuard {
         return _supplyReasons(token.totalSupply()) & HALT_MASK != 0;
     }
 
-    /// @notice The anchor, if it is young enough to compare against.
-    function anchorInRange() public view returns (bool ok, Baseline memory a) {
-        a = anchor;
-        ok = a.timestamp > 0 && block.timestamp - a.timestamp <= ANCHOR_MAX_AGE;
+    /// @notice Whether an anchor is young enough to compare against.
+    function anchorInRange(Baseline memory a) public view returns (bool) {
+        return a.timestamp > 0 && block.timestamp - a.timestamp <= ANCHOR_MAX_AGE;
     }
 
     /// @notice The oldest baseline whose age is within [baselineMinAge, baselineMaxAge].
@@ -297,6 +305,10 @@ contract CordonGuard {
         if (latchedBaseline != 0) {
             if (!_above(supply, latchedBaseline, jumpHaltBps)) {
                 emit JumpCleared(latchedBaseline, supply);
+                // Re-anchor at the pre-jump supply: anchors frozen through a long latch have expired,
+                // and the next checkpoint must not take the cleared-down supply as the new floor.
+                anchor = Baseline(latchedBaseline, uint64(block.timestamp));
+                previousAnchor = anchor;
                 latchedBaseline = 0;
                 if (releaseSupply != 0) _clearRelease();
             }
@@ -310,13 +322,15 @@ contract CordonGuard {
     }
 
     /// @dev The reference `supply` jumped from by more than `jumpHaltBps`: the in-band baseline
-    ///      (fast, 30 min to 2 h) or else the anchor (slow, up to 2 days). 0 when neither tripped.
+    ///      (fast, 30 min to 2 h), else either anchor (slow, up to 2 days). 0 when none tripped.
     ///      Stored supplies were range-checked when written.
     function _jumpReference(uint256 supply) internal view returns (uint128) {
         (bool ok, Baseline memory b) = baselineInBand();
         if (ok && _above(supply, b.supply, jumpHaltBps)) return b.supply;
-        (bool aOk, Baseline memory a) = anchorInRange();
-        if (aOk && _above(supply, a.supply, jumpHaltBps)) return a.supply;
+        Baseline memory a = anchor;
+        if (anchorInRange(a) && _above(supply, a.supply, jumpHaltBps)) return a.supply;
+        a = previousAnchor;
+        if (anchorInRange(a) && _above(supply, a.supply, jumpHaltBps)) return a.supply;
         return 0;
     }
 
