@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>See it stop a bad mint · Backed</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f6f3ec; --sheet:#fffdf8; --ink:#1b1a17; --ink-2:#4f4c44; --ink-3:#66625a; --rule:#d9d3c5; --bad:#a3231b;
+  --serif:"Newsreader","Iowan Old Style",Georgia,serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r-sm:2px; --r-md:6px; --ease:cubic-bezier(.2,.8,.2,1); --t-hover:160ms;
+  --shadow-2:inset 0 1px 0 rgba(255,255,255,.7),0 1px 2px rgba(27,26,23,.05),0 6px 16px -6px rgba(27,26,23,.12),0 18px 40px -20px rgba(27,26,23,.18);
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#12130f; --sheet:#1b1c18; --ink:#ece8de; --ink-2:#b9b4a7; --ink-3:#948f83; --rule:#33342e; --bad:#f08a7f;
+  --shadow-2:inset 0 1px 0 rgba(255,255,255,.04),0 10px 30px -12px rgba(0,0,0,.65);
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.55 var(--serif);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:var(--ink-3);border-radius:var(--r-sm);transition:background-color var(--t-hover) var(--ease),box-shadow var(--t-hover) var(--ease)}
+@media (hover:hover){a:hover{background-color:var(--rule);box-shadow:0 0 0 3px var(--rule)}}
+:focus-visible{outline:none;box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--ink)}
+.back{display:inline-flex;align-items:center;min-height:44px;margin-top:24px;font:500 15px var(--mono)}
+h1{font-weight:400;font-size:clamp(32px,4.6vw,56px);line-height:1.04;letter-spacing:-.025em;margin:32px 0 32px}
+pre{background:var(--sheet);box-shadow:var(--shadow-2);border-radius:var(--r-md);padding:20px;margin:0 0 32px;overflow-x:auto;font:400 14px/1.65 var(--mono);color:var(--ink);position:relative;-webkit-overflow-scrolling:touch}
+#out{border-left:6px solid var(--bad)}
+#missing{font-size:clamp(19px,2vw,22px);margin:0 0 32px}
+#missing[hidden]{display:none}
+footer{padding:32px 0 48px;color:var(--ink-2);font-size:15px;border-top:1px solid var(--rule);margin-top:40px}
+@media (max-width:760px){pre{font-size:13px;padding:16px}}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="./">Backed</a>
+<h1>See it stop a bad mint</h1>
+<p id="missing" hidden>Replay output not found. Run the command below to produce it.</p>
+<pre id="out" aria-live="polite">—</pre>
+<pre><code>forge test --match-test test_overMintHaltsBorrow --fork-url https://rpc.mainnet.chain.robinhood.com -vv</code></pre>
+<footer>Not affiliated with Paxos or Robinhood. Source: <a href="https://github.com/Yonkoo11/backed">github.com/Yonkoo11/backed</a></footer>
+</div>
+<script type="module">
+const out = document.getElementById('out');
+const missing = document.getElementById('missing');
+try {
+  const res = await fetch('replay.txt', { cache: 'no-store' });
+  if (!res.ok) throw new Error('http ' + res.status);
+  const text = await res.text();
+  if (!text.trim()) throw new Error('empty');
+  out.textContent = text;
+} catch {
+  out.hidden = true;
+  missing.hidden = false;
+}
+</script>
+</body>
+</html>

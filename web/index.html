@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backed — is USDG still backed on Robinhood Chain?</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f6f3ec; --sheet:#fffdf8; --ink:#1b1a17; --ink-2:#4f4c44; --ink-3:#66625a; --rule:#d9d3c5;
+  --ok:#1f6b3a; --ok-wash:#e4efe3; --warn:#835500; --warn-wash:#f5ead2; --bad:#a3231b; --bad-wash:#f6e0dc;
+  --serif:"Newsreader","Iowan Old Style",Georgia,serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r-sm:2px; --r-md:6px;
+  --ease:cubic-bezier(.2,.8,.2,1); --t-press:120ms; --t-hover:160ms; --t-state:320ms;
+  --shadow-1:0 1px 0 rgba(27,26,23,.04),0 1px 2px rgba(27,26,23,.08);
+  --shadow-2:inset 0 1px 0 rgba(255,255,255,.7),0 1px 2px rgba(27,26,23,.05),0 6px 16px -6px rgba(27,26,23,.12),0 18px 40px -20px rgba(27,26,23,.18);
+  --state:var(--ink-3); --wash:var(--sheet);
+}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#12130f; --sheet:#1b1c18; --ink:#ece8de; --ink-2:#b9b4a7; --ink-3:#948f83; --rule:#33342e;
+  --ok:#74c993; --ok-wash:#172619; --warn:#e6b65a; --warn-wash:#29230f; --bad:#f08a7f; --bad-wash:#2d1a17;
+  --shadow-1:inset 0 1px 0 rgba(255,255,255,.05),0 1px 2px rgba(0,0,0,.4);
+  --shadow-2:inset 0 1px 0 rgba(255,255,255,.04),0 10px 30px -12px rgba(0,0,0,.65);
+}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.55 var(--serif);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:var(--ink-3);border-radius:var(--r-sm);transition:background-color var(--t-hover) var(--ease),box-shadow var(--t-hover) var(--ease),text-decoration-color var(--t-hover) var(--ease)}
+@media (hover:hover){a:hover{text-decoration-color:var(--ink);background-color:var(--rule);box-shadow:0 0 0 3px var(--rule)}}
+:focus-visible{outline:none;box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--ink)}
+
+/* header */
+.top{display:grid;grid-template-columns:7fr 4fr;gap:48px;padding:72px 0 32px;align-items:end}
+h1{font-weight:400;font-size:clamp(32px,4.6vw,56px);line-height:1.04;letter-spacing:-.025em;margin:0;max-width:18ch}
+h1 em{font-style:italic;color:var(--state);transition:color var(--t-state) var(--ease)}
+.sub{color:var(--ink-2);margin:16px 0 0;max-width:52ch}
+.meta{font:400 13px/1.5 var(--mono);color:var(--ink-3);display:grid;gap:8px;justify-items:start}
+.cta{display:inline-flex;align-items:center;min-height:44px;font:500 15px var(--mono);color:var(--ink)}
+
+/* status band: motif, large scale (solid edge) */
+.status{position:relative;background:var(--wash);border-radius:var(--r-md);box-shadow:var(--shadow-2);padding:24px 28px 24px 36px;margin:0 0 64px;transition:background-color var(--t-state) var(--ease)}
+.status::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;border-radius:var(--r-md) 0 0 var(--r-md);background:var(--state);transition:background-color var(--t-state) var(--ease)}
+body[data-level=healthy]{--state:var(--ok);--wash:var(--ok-wash)}
+body[data-level=caution]{--state:var(--warn);--wash:var(--warn-wash)}
+body[data-level=halt]{--state:var(--bad);--wash:var(--bad-wash)}
+#status-text{font-size:clamp(22px,2.4vw,28px);line-height:1.25;letter-spacing:-.01em;margin:0;max-width:52ch}
+#reasons{list-style:none;margin:12px 0 0;padding:0}
+#reasons:empty{display:none}
+#reasons li{display:grid;grid-template-columns:28px auto 1fr;gap:12px;align-items:baseline;padding:4px 0;color:var(--ink-2)}
+#reasons li::before{content:"";border-top:2px solid var(--ink-2);transform:translateY(-4px)}
+#reasons li[data-kind=reported]::before{border-top-style:dashed}
+#reasons code{font:500 13px var(--mono);color:var(--ink)}
+.btn{font:500 15px var(--mono);min-height:44px;padding:0 18px;border:0;border-radius:var(--r-sm);background:var(--ink);color:var(--paper);cursor:pointer;margin-top:16px;box-shadow:var(--shadow-1);transition:transform var(--t-hover) var(--ease),box-shadow var(--t-hover) var(--ease)}
+@media (hover:hover){.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-2)}}
+.btn:active{transform:scale(.97);transition-duration:var(--t-press)}
+.btn[hidden]{display:none}
+
+/* sections */
+section{margin:0 0 72px}
+h2{font-weight:500;font-size:24px;line-height:1.2;letter-spacing:-.015em;margin:0 0 16px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{font:500 12px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:8px 16px 8px 0;border-bottom:1px solid var(--rule)}
+td{padding:12px 16px 12px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+.v,.m{font:400 15px/1.5 var(--mono)}
+.m a{white-space:nowrap}
+/* motif, medium scale (Kind stroke) */
+.kind{display:inline-flex;align-items:baseline;gap:10px;color:var(--ink-2);font-size:15px;line-height:1.35}
+.kind::before{content:"";flex:none;width:28px;border-top:2px solid var(--ink);transform:translateY(-4px)}
+.kind.reported::before{border-top-style:dashed}
+
+.backing{display:grid;grid-template-columns:7fr 4fr;gap:48px;align-items:start}
+#backing-line{font-size:clamp(19px,2vw,22px);line-height:1.55;margin:0}
+/* motif, small scale (dashed underline under reported figures) */
+.fig{font:400 .84em var(--mono);border-bottom:2px dashed var(--ink-3);padding-bottom:1px;white-space:nowrap}
+.source{padding-top:40px}
+.hash{font:400 13px/1.6 var(--mono);word-break:break-all;color:var(--ink-2);margin:12px 0 0}
+
+.code{background:var(--sheet);box-shadow:var(--shadow-2);border-radius:var(--r-md);padding:20px;overflow-x:auto;font:400 14px/1.65 var(--mono);margin:0;-webkit-overflow-scrolling:touch}
+.code .c{color:var(--ink-3)}
+.links{font:400 13px/1.6 var(--mono);color:var(--ink-3);margin:12px 0 0;display:flex;flex-wrap:wrap;gap:4px 16px}
+.links a{display:inline-flex;align-items:center;min-height:32px}
+
+.limits ol{margin:0;padding:0;list-style:none;counter-reset:l}
+.limits li{counter-increment:l;font-size:clamp(19px,2vw,23px);line-height:1.4;padding:16px 0;border-top:1px solid var(--rule);display:grid;grid-template-columns:48px 1fr;max-width:62ch}
+.limits li::before{content:"0" counter(l);font:500 13px/2.2 var(--mono);color:var(--ink-3)}
+
+footer{padding:32px 0 48px;color:var(--ink-2);font-size:15px;border-top:1px solid var(--rule)}
+body[data-stale="1"] [data-v],body[data-stale="1"] #backing-line,body[data-stale="1"] #minters{opacity:.55}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .top,.backing{grid-template-columns:1fr;gap:16px}
+  .top{padding-top:40px}
+  .status{padding:20px 16px 20px 24px;margin-bottom:48px}
+  .source{padding-top:0}
+  section{margin-bottom:56px}
+  .read thead{display:none}
+  .read tr{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--rule)}
+  .read td{border:0;padding:0}
+  .read td.label{grid-column:1}
+  .read td.v{grid-column:2;grid-row:1;text-align:right}
+  .read td.k,.read td.m{grid-column:1 / -1}
+  .read td.m{font-size:13px}
+  .mint thead{display:none}
+  .mint tr{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--rule)}
+  .mint td{border:0;padding:0}
+  .mint td:nth-child(2){text-align:right}
+  .mint td:nth-child(3){grid-column:1 / -1;text-align:right;color:var(--ink-2)}
+  .code{font-size:13px;padding:16px}
+  .limits li{grid-template-columns:36px 1fr}
+}
+@media (prefers-reduced-motion:reduce){*,*::before{transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div>
+    <h1>Backed watches Paxos' side of USDG and tells lending markets when to <em>stop.</em></h1>
+    <p class="sub">A guard any contract can ask in the same transaction. It reads the chain itself where it can, and says so where it cannot.</p>
+  </div>
+  <div class="meta">
+    <span id="read-meta">—</span>
+    <a class="cta" href="replay.html">See it stop a bad mint</a>
+  </div>
+</header>
+
+<div class="status" id="status" aria-live="polite">
+  <p id="status-text">Reading Robinhood Chain…</p>
+  <ul id="reasons"></ul>
+  <button class="btn" id="retry" type="button" hidden>Try again</button>
+</div>
+
+<main>
+<section class="read">
+<table>
+<thead><tr><th>What we read</th><th>Kind</th><th>Value</th><th>Read from</th></tr></thead>
+<tbody>
+<tr><td class="label">Supply on this chain</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="supply">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" title="0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168">0x5fc5…d168</a></td></tr>
+<tr><td class="label">Supply, 1 h change</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="change">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5" title="0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5">0x60aa…52B5</a></td></tr>
+<tr><td class="label">Minter set</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="minters">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4" title="0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4">0xdf5F…25D4</a></td></tr>
+<tr><td class="label">Admin transfer</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="admin">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" title="0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168">0x5fc5…d168</a> <a href="https://robinhoodchain.blockscout.com/address/0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4" title="0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4">0xdf5F…25D4</a></td></tr>
+<tr><td class="label">Report age</td><td class="k"><span class="kind reported">Posted by our reporter from the KPMG report</span></td><td class="v" data-v="age">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5" title="0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5">0x60aa…52B5</a></td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="backing">
+  <div>
+    <h2>Backing, as attested</h2>
+    <p id="backing-line">—</p>
+  </div>
+  <div class="source">
+    <span class="kind reported">Posted by our reporter from the KPMG report</span>
+    <p class="hash"><a id="report-link" href="https://framerusercontent.com/assets/Xn1UQwAte85FnsDveIMX0n1qtVM.pdf">—</a><br><span id="report-sha">—</span></p>
+  </div>
+</section>
+
+<section class="mint">
+<h2>Who can mint USDG on Robinhood Chain</h2>
+<table>
+<thead><tr><th>Controller</th><th>Cap</th><th>Refill per second</th></tr></thead>
+<tbody id="minters"><tr><td class="m">—</td><td class="v">—</td><td class="v">—</td></tr></tbody>
+</table>
+</section>
+
+<section>
+<h2>Use it in a Morpho market</h2>
+<pre class="code"><code>new BackedMorphoOracle(
+    IOracle(&lt;market's existing oracle&gt;),
+    BackedGuard(0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5),
+    5000
+)
+
+<span class="c">// Robinhood Chain (4663)
+// BackedGuard         0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5
+// BackedMorphoOracle  0xac4a29515E0c2407ce0F4093C9143753F1b069F5
+//   IOracle           0x548196c5A7D2127Ae69FBc69e2fEd9686Fdd7A10
+//   haltDiscountBps   5000
+// Morpho              0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010
+//   market id         0x99b038b2578a5f9fc142f5fedbd24c6de0e8a4bc81e51e8d8016d0621145a0e5
+// Arbitrum Sepolia (421614)
+// BackedGuard         0x3116355dADA421a9b483787b1f1e519331d70dA8</span></code></pre>
+<p class="links">
+  <span>BackedGuard <a href="https://robinhoodchain.blockscout.com/address/0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5">Blockscout</a> <a href="https://repo.sourcify.dev/4663/0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5">Sourcify</a></span>
+  <span>BackedMorphoOracle <a href="https://robinhoodchain.blockscout.com/address/0xac4a29515E0c2407ce0F4093C9143753F1b069F5">Blockscout</a> <a href="https://repo.sourcify.dev/4663/0xac4a29515E0c2407ce0F4093C9143753F1b069F5">Sourcify</a></span>
+</p>
+</section>
+
+<section class="limits">
+<h2>What Backed does not do</h2>
+<ol>
+<li>It does not prove Paxos' reserves. The reserve figure is KPMG's, posted by us, with the report's hash so anyone can check it.</li>
+<li>It does not see other chains. A problem minted on Ethereum or Solana is not in these checks.</li>
+<li>It cannot see contract upgrades; USDG exposes no way to read them onchain.</li>
+<li>It does not protect money held in USDG. It protects people who accept USDG for something else.</li>
+<li>It never blocks repaying, withdrawing or liquidating.</li>
+</ol>
+</section>
+</main>
+
+<footer>Not affiliated with Paxos or Robinhood. Source: <a href="https://github.com/Yonkoo11/backed">github.com/Yonkoo11/backed</a></footer>
+</div>
+<script type="module" src="chain.js"></script>
+</body>
+</html>

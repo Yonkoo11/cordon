@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backed — is USDG still backed on Robinhood Chain?</title>
+<!--
+PROPOSAL 3 — "Swiss board"
+DNA-G-S-F-D-S  (Grid · Side index · Full-viewport verdict · Duotone (ink + state) · Sans)
+Inspirations: Swiss Design / International Typographic Style + Wise.com (inspirations.md); research: THE MARK
+numbered index, Circle "as of" date.
+
+UX Architecture
+Entry: README. Exit: the giant level word fills the first viewport; reasons beneath.
+Screens: Status (numbered sections 01-06 with fixed side index) · Replay.
+States: Empty — giant "—", "Reading Robinhood Chain…". Error — giant "—", error text + Try again.
+Success — level word huge in state colour, sentence beneath.
+Motif: the numbered index tick (01-06) at three scales: side index, section numbers, row markers.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;700;900&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fafaf7;--ink:#0f1012;--mid:#4e5157;--dim:#6b6f76;--line:#dcdcd6;--ok:#16733a;--warn:#875700;--bad:#b0261c;--state:var(--ink);
+--sans:"Schibsted Grotesk",system-ui,sans-serif;--mono:"Spline Sans Mono",ui-monospace,monospace;--ease:cubic-bezier(.2,.8,.2,1);--r0:0;--r1:3px}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1012;--ink:#efefea;--mid:#b4b6ba;--dim:#8c9096;--line:#2a2c30;--ok:#64c98a;--warn:#e8b552;--bad:#f2786c}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+.dna{position:fixed;top:8px;right:8px;font:500 12px/1 var(--mono);color:var(--dim);z-index:10}
+.index{position:fixed;left:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px;font:500 12px var(--mono);letter-spacing:.06em}
+.index a{color:var(--dim);text-decoration:none;min-height:28px;display:flex;align-items:center}
+.page{max-width:1200px;margin:0 auto;padding:0 16px 0 80px}
+.verdict{min-height:100dvh;display:grid;grid-template-rows:auto 1fr auto;padding:48px 0}
+h1{font:700 clamp(22px,2.2vw,28px)/1.2 var(--sans);letter-spacing:-.015em;max-width:30ch;margin:0}
+.sub{color:var(--mid);max-width:56ch;margin:8px 0 0}
+#status{align-self:center}#status[data-level=healthy]{--state:var(--ok)}#status[data-level=caution]{--state:var(--warn)}#status[data-level=halt]{--state:var(--bad)}
+.word{font:900 clamp(72px,16vw,220px)/.86 var(--sans);letter-spacing:-.05em;color:var(--state);margin:0}
+#status-text{font:400 clamp(18px,2vw,24px)/1.35 var(--sans);max-width:40ch;margin:16px 0 0}
+#reasons{list-style:none;padding:0;margin:12px 0 0;color:var(--mid)}#reasons code{font:500 12px var(--mono);color:var(--state)}
+.btn{font:500 14px var(--mono);min-height:44px;padding:0 20px;border:2px solid var(--ink);background:transparent;color:var(--ink);border-radius:var(--r0);cursor:pointer;margin-top:16px;transition:transform 160ms var(--ease),box-shadow 160ms var(--ease)}
+@media (hover:hover){.btn:hover{transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--ink)}}.btn:active{transform:scale(.97)}
+:focus-visible{outline:3px solid var(--state);outline-offset:3px}
+.metaline{font:400 13px var(--mono);color:var(--dim);display:flex;gap:24px;flex-wrap:wrap}
+section{display:grid;grid-template-columns:2fr 10fr;gap:24px;padding:48px 0;border-top:2px solid var(--ink)}
+section>.n{font:500 13px var(--mono);color:var(--dim)}
+h2{font:700 28px/1.1 var(--sans);letter-spacing:-.02em;margin:0 0 24px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{font:500 12px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--dim);text-align:left;padding:0 8px 8px 0}
+td{padding:12px 8px 12px 0;border-top:1px solid var(--line)}td[data-v],.m{font:400 14px var(--mono)}
+.k.rep{font-style:italic}
+#backing-line{font:400 clamp(20px,2.4vw,30px)/1.35 var(--sans);letter-spacing:-.01em;margin:0}
+.fig{font-weight:700}
+pre{font:400 14px/1.6 var(--mono);white-space:pre-wrap;word-break:break-all;margin:0}
+.lim li{font:700 clamp(20px,2.2vw,28px)/1.25 var(--sans);letter-spacing:-.015em;margin:0 0 16px}
+a{color:inherit}.replay{display:inline-flex;min-height:44px;align-items:center}
+footer{padding:24px 0 48px;color:var(--dim);border-top:1px solid var(--line)}
+@media (max-width:760px){.index{display:none}.page{padding:0 16px}section{grid-template-columns:1fr;gap:8px}.th-src,.td-src{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="dna">DNA-G-S-F-D-S</div>
+<nav class="index" aria-label="Sections"><a href="#s1">01</a><a href="#s2">02</a><a href="#s3">03</a><a href="#s4">04</a><a href="#s5">05</a></nav>
+<div class="page">
+<div class="verdict">
+  <div><h1>Backed watches Paxos' side of USDG and tells lending markets when to stop.</h1><p class="sub">A guard any contract can ask in the same transaction. It reads the chain itself where it can, and says so where it cannot.</p></div>
+  <div id="status" aria-live="polite"><p class="word" id="word" aria-hidden="true">—</p><p id="status-text">Reading Robinhood Chain…</p><ul id="reasons"></ul><button class="btn" id="retry" hidden>Try again</button></div>
+  <div class="metaline"><span id="read-meta">—</span><a class="replay" href="replay.html">See it stop a bad mint</a></div>
+</div>
+<section id="s1"><div class="n">01</div><div><table><thead><tr><th>What we read</th><th>Kind</th><th>Value</th><th class="th-src">Read from</th></tr></thead><tbody>
+<tr><td>Supply on this chain</td><td class="k">Read from the chain</td><td data-v="supply">—</td><td class="m td-src">0x5fc5…d168</td></tr>
+<tr><td>Supply, 1 h change</td><td class="k">Read from the chain</td><td data-v="change">—</td><td class="m td-src">0x60aa…52B5</td></tr>
+<tr><td>Minter set</td><td class="k">Read from the chain</td><td data-v="minters">—</td><td class="m td-src">0xdf5F…25D4</td></tr>
+<tr><td>Admin transfer</td><td class="k">Read from the chain</td><td data-v="admin">—</td><td class="m td-src">0x5fc5…d168</td></tr>
+<tr><td>Report age</td><td class="k rep">Posted by our reporter from the KPMG report</td><td data-v="age">—</td><td class="m td-src">0x60aa…52B5</td></tr></tbody></table></div></section>
+<section id="s2"><div class="n">02</div><div><h2>Backing, as attested</h2><p id="backing-line">—</p><p class="k rep">Posted by our reporter from the KPMG report</p><pre><a id="report-link" href="#">—</a>
+<span id="report-sha">—</span></pre></div></section>
+<section id="s3"><div class="n">03</div><div><h2>Who can mint USDG on Robinhood Chain</h2><table><tbody id="minters"><tr><td>—</td></tr></tbody></table></div></section>
+<section id="s4"><div class="n">04</div><div><h2>Use it in a Morpho market</h2><pre>new BackedMorphoOracle(IOracle(&lt;market's existing oracle&gt;), BackedGuard(0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5), 5000)</pre></div></section>
+<section id="s5" class="lim"><div class="n">05</div><div><h2>What Backed does not do</h2><ol>
+<li>It does not prove Paxos' reserves. The reserve figure is KPMG's, posted by us, with the report's hash so anyone can check it.</li>
+<li>It does not see other chains. A problem minted on Ethereum or Solana is not in these checks.</li>
+<li>It cannot see contract upgrades; USDG exposes no way to read them onchain.</li>
+<li>It does not protect money held in USDG. It protects people who accept USDG for something else.</li>
+<li>It never blocks repaying, withdrawing or liquidating.</li></ol></div></section>
+<footer>Not affiliated with Paxos or Robinhood. Source: <a href="https://github.com/Yonkoo11/backed">github.com/Yonkoo11/backed</a></footer>
+</div>
+<script type="module">
+// Backed status page: reads Robinhood Chain in the visitor's browser. No wallet, no server.
+const RPC = 'https://rpc.mainnet.chain.robinhood.com';
+const GUARD = '0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5';
+const USDG = '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168';
+const SUPPLY_CONTROL = '0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4';
+const PUBLISHED = '2026-09-25'; // KPMG report publication date; not onchain
+const TIMEOUT_MS = 8000;
+const REFRESH_MS = 60000;
+const DASH = '—';
+
+// selectors from `cast sig`
+const SEL = {
+  status: '0x200d2ed2',
+  latestAttestation: '0x24b6d96a',
+  baselineInBand: '0x9b4eb90a',
+  totalSupply: '0x18160ddd',
+  pendingDefaultAdmin: '0xcf6eefb7',
+  getAllSupplyControllerAddresses: '0x6190bfb0',
+  getSupplyControllerConfig: '0xc248f7d6',
+};
+
+const STATUS_TEXT = [
+  'HEALTHY. Nothing in Paxos’ controls or posted backing needs attention.',
+  'CAUTION. Something changed that a human should look at. Prices are not touched.',
+  'HALT. A trustless check or the posted backing failed. Markets using Backed discount USDG collateral.',
+];
+const LEVEL_WORD = ['HEALTHY', 'CAUTION', 'HALT'];
+const REASONS = [
+  'Supply on this chain rose more than 25% within an hour.',
+  'Supply on this chain rose more than 15% within an hour.',
+  'No supply baseline from the last two hours. Anyone can add one.',
+  'The set of addresses allowed to mint USDG changed.',
+  'A change of USDG’s admin is scheduled.',
+  'The latest posted report shows reserves below tokens outstanding.',
+  'No report posted for a period that ended in the last 62 days.',
+  'Supply on this chain is above the posted total for all chains.',
+];
+const LOADING_TEXT = 'Reading Robinhood Chain…';
+const ERROR_TEXT = 'Could not reach Robinhood Chain. Nothing here is a verdict. Try again.';
+
+// ---------- ABI helpers (no library) ----------
+const words = (hex) => {
+  const h = hex.startsWith('0x') ? hex.slice(2) : hex;
+  const out = [];
+  for (let i = 0; i < h.length; i += 64) out.push(h.slice(i, i + 64));
+  return out;
+};
+const big = (w) => BigInt('0x' + (w || '0'));
+const addr = (w) => '0x' + w.slice(24);
+const pad = (a) => a.toLowerCase().replace('0x', '').padStart(64, '0');
+
+function decodeString(hex, byteOffset) {
+  const h = hex.slice(2);
+  const len = Number(big(h.slice(byteOffset * 2, byteOffset * 2 + 64)));
+  const data = h.slice(byteOffset * 2 + 64, byteOffset * 2 + 64 + len * 2);
+  const bytes = new Uint8Array(data.match(/../g)?.map((b) => parseInt(b, 16)) || []);
+  return new TextDecoder().decode(bytes);
+}
+
+function decodeAttestation(hex) {
+  const w = words(hex);
+  const base = Number(big(w[0])) / 32; // offset of the tuple
+  const t = w.slice(base);
+  const strOffset = Number(big(t[5])); // relative to tuple start, in bytes
+  return {
+    periodEnd: Number(big(t[0])),
+    postedAt: Number(big(t[1])),
+    outstanding: big(t[2]),
+    reserves: big(t[3]),
+    sha: '0x' + t[4],
+    uri: decodeString(hex, base * 32 + strOffset),
+  };
+}
+
+// ---------- JSON-RPC ----------
+async function batch(calls, signal) {
+  const body = calls.map((c, i) => ({
+    jsonrpc: '2.0', id: i, method: c.method || 'eth_call',
+    params: c.params || [{ to: c.to, data: c.data }, 'latest'],
+  }));
+  const res = await fetch(RPC, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body), signal,
+  });
+  if (!res.ok) throw new Error('rpc http ' + res.status);
+  const arr = await res.json();
+  if (!Array.isArray(arr)) throw new Error('rpc: not a batch reply');
+  const byId = new Map(arr.map((r) => [r.id, r]));
+  return calls.map((_, i) => {
+    const r = byId.get(i);
+    if (!r || r.error) throw new Error('rpc call ' + i + ' failed');
+    return r.result;
+  });
+}
+
+async function readAll(signal) {
+  const [statusHex, attHex, bandHex, supplyHex, tokPendHex, scPendHex, ctrlHex, block] = await batch([
+    { to: GUARD, data: SEL.status },
+    { to: GUARD, data: SEL.latestAttestation },
+    { to: GUARD, data: SEL.baselineInBand },
+    { to: USDG, data: SEL.totalSupply },
+    { to: USDG, data: SEL.pendingDefaultAdmin },
+    { to: SUPPLY_CONTROL, data: SEL.pendingDefaultAdmin },
+    { to: SUPPLY_CONTROL, data: SEL.getAllSupplyControllerAddresses },
+    { method: 'eth_getBlockByNumber', params: ['latest', false] },
+  ], signal);
+
+  const sw = words(statusHex);
+  const bw = words(bandHex);
+  const cw = words(ctrlHex);
+  const n = Number(big(cw[1]));
+  const controllers = cw.slice(2, 2 + n).map(addr);
+
+  const configs = n ? await batch(controllers.map((a) => ({
+    to: SUPPLY_CONTROL, data: SEL.getSupplyControllerConfig + pad(a),
+  })), signal) : [];
+
+  const pending = (hex) => { const w = words(hex); return { next: addr(w[0]), at: Number(big(w[1])) }; };
+  return {
+    level: Number(big(sw[0])),
+    reasons: big(sw[1]),
+    attestation: decodeAttestation(attHex),
+    band: { ok: big(bw[0]) === 1n, supply: big(bw[1]), timestamp: Number(big(bw[2])) },
+    supply: BigInt(supplyHex),
+    tokenPending: pending(tokPendHex),
+    controlPending: pending(scPendHex),
+    controllers: controllers.map((a, i) => {
+      const w = words(configs[i]);
+      return { address: a, cap: big(w[0]), refill: big(w[1]) };
+    }),
+    block: { number: Number(BigInt(block.number)), timestamp: Number(BigInt(block.timestamp)) },
+  };
+}
+
+// ---------- formatting ----------
+const units = (v) => v / 1_000_000n; // 6 decimals -> whole units
+const comma = (v) => v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+function amount6(v) {
+  const whole = units(v);
+  if (whole >= 1n) return comma(whole);
+  const frac = (v % 1_000_000n).toString().padStart(6, '0').replace(/0+$/, '');
+  return '0.' + (frac || '0');
+}
+const isoDate = (sec) => new Date(sec * 1000).toISOString().slice(0, 10);
+const utcTime = (sec) => new Date(sec * 1000).toISOString().slice(11, 19) + ' UTC';
+const short = (a) => a.slice(0, 6) + '…' + a.slice(-4);
+const ZERO = '0x0000000000000000000000000000000000000000';
+
+// ---------- rendering ----------
+const $ = (s) => document.querySelector(s);
+const setText = (sel, text) => { const el = $(sel); if (el) el.textContent = text; };
+
+function renderEmpty() {
+  document.querySelectorAll('[data-v]').forEach((el) => { el.textContent = DASH; });
+  setText('#backing-line', DASH);
+  setText('#read-meta', DASH);
+}
+
+function setState(state, level) {
+  const box = $('#status');
+  box.dataset.state = state;
+  if (level !== undefined) box.dataset.level = LEVEL_WORD[level].toLowerCase();
+  else delete box.dataset.level;
+  $('#retry').hidden = state !== 'error';
+  if (state === 'loading') { setText('#status-text', LOADING_TEXT); $('#reasons').replaceChildren(); }
+  if (state === 'error') { setText('#status-text', ERROR_TEXT); $('#reasons').replaceChildren(); }
+  document.body.dataset.stale = state === 'error' && $('#status').dataset.had === '1' ? '1' : '0';
+}
+
+function renderData(d) {
+  const box = $('#status');
+  box.dataset.had = '1';
+  setState('ready', d.level);
+  setText('#status-text', STATUS_TEXT[d.level] || STATUS_TEXT[1]);
+  const list = $('#reasons');
+  list.replaceChildren(...REASONS.flatMap((text, bit) => {
+    if (!(d.reasons & (1n << BigInt(bit)))) return [];
+    const li = document.createElement('li');
+    li.dataset.kind = bit >= 5 ? 'reported' : 'trustless';
+    const code = document.createElement('code');
+    code.textContent = 'bit ' + bit;
+    li.append(code, document.createTextNode(' ' + text));
+    return [li];
+  }));
+
+  const a = d.attestation;
+  // What we read
+  setText('[data-v="supply"]', comma(units(d.supply)) + ' USDG');
+  if (d.band.ok && d.band.supply > 0n) {
+    const bps = Number(((d.supply - d.band.supply) * 100000n) / d.band.supply) / 1000;
+    setText('[data-v="change"]', (bps >= 0 ? '+' : '') + bps.toFixed(1) + '%');
+  } else {
+    setText('[data-v="change"]', 'no baseline');
+  }
+  const changed = (d.reasons & (1n << 3n)) !== 0n;
+  setText('[data-v="minters"]', (changed ? 'changed' : 'unchanged') + ' (' + d.controllers.length + ')');
+  const pend = [d.tokenPending, d.controlPending].filter((p) => p.next !== ZERO || p.at > 0);
+  setText('[data-v="admin"]', pend.length ? 'pending ' + pend.map((p) => short(p.next)).join(', ') : 'none pending');
+  if (a.periodEnd > 0) {
+    const days = Math.floor((d.block.timestamp - a.periodEnd) / 86400);
+    setText('[data-v="age"]', days + ' days');
+  } else {
+    setText('[data-v="age"]', 'none posted');
+  }
+
+  // Backing, as attested
+  if (a.periodEnd > 0 && a.outstanding > 0n) {
+    const excess = Number(((a.reserves - a.outstanding) * 1000000n) / a.outstanding) / 10000;
+    const line = $('#backing-line');
+    line.replaceChildren(
+      'On ', fig(isoDate(a.periodEnd)), ', KPMG attested ', fig(comma(units(a.outstanding))),
+      ' USDG outstanding across all chains and ', fig('$' + comma(units(a.reserves))),
+      ' in reserves (', fig(excess.toFixed(2) + '%'), ' above par). Published ', fig(PUBLISHED), '.',
+    );
+    const link = $('#report-link');
+    if (link && /^https:\/\//.test(a.uri)) { link.href = a.uri; link.textContent = a.uri.replace(/^https:\/\//, ''); }
+    setText('#report-sha', a.sha);
+  }
+
+  // Who can mint
+  const body = $('#minters');
+  body.replaceChildren(...d.controllers.map((c) => {
+    const tr = document.createElement('tr');
+    const td1 = document.createElement('td');
+    const l = document.createElement('a');
+    l.href = 'https://robinhoodchain.blockscout.com/address/' + c.address;
+    l.textContent = short(c.address);
+    l.title = c.address;
+    td1.append(l);
+    const td2 = document.createElement('td'); td2.textContent = amount6(c.cap) + ' USDG';
+    const td3 = document.createElement('td'); td3.textContent = amount6(c.refill) + ' / s';
+    tr.append(td1, td2, td3);
+    return tr;
+  }));
+
+  setText('#read-meta', 'block ' + comma(BigInt(d.block.number)) + ' · ' + utcTime(d.block.timestamp));
+}
+
+function fig(text) { const s = document.createElement('span'); s.className = 'fig'; s.textContent = text; return s; }
+
+// ---------- loop ----------
+let inflight = null;
+let timer = null;
+async function run() {
+  if (inflight) inflight.abort();
+  const ctrl = new AbortController();
+  inflight = ctrl;
+  if ($('#status').dataset.had !== '1') setState('loading');
+  const kill = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const d = await readAll(ctrl.signal);
+    if (inflight === ctrl) renderData(d);
+  } catch (e) {
+    if (inflight === ctrl) setState('error');
+  } finally {
+    clearTimeout(kill);
+    if (inflight === ctrl) inflight = null;
+  }
+}
+
+function start() {
+  renderEmpty();
+  setState('loading');
+  $('#retry').addEventListener('click', () => { setState('loading'); run(); schedule(); });
+  run();
+  schedule();
+}
+function schedule() { clearInterval(timer); timer = setInterval(run, REFRESH_MS); }
+
+start();
+
+</script>
+<script>
+new MutationObserver(()=>{const s=document.getElementById('status');document.getElementById('word').textContent={healthy:'HEALTHY',caution:'CAUTION',halt:'HALT'}[s.dataset.level]||'—'}).observe(document.getElementById('status'),{attributes:true});
+</script>
+</body>
+</html>

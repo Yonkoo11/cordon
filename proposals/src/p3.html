@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backed — is USDG still backed on Robinhood Chain?</title>
+<!--
+PROPOSAL 3 — "Swiss board"
+DNA-G-S-F-D-S  (Grid · Side index · Full-viewport verdict · Duotone (ink + state) · Sans)
+Inspirations: Swiss Design / International Typographic Style + Wise.com (inspirations.md); research: THE MARK
+numbered index, Circle "as of" date.
+
+UX Architecture
+Entry: README. Exit: the giant level word fills the first viewport; reasons beneath.
+Screens: Status (numbered sections 01-06 with fixed side index) · Replay.
+States: Empty — giant "—", "Reading Robinhood Chain…". Error — giant "—", error text + Try again.
+Success — level word huge in state colour, sentence beneath.
+Motif: the numbered index tick (01-06) at three scales: side index, section numbers, row markers.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;700;900&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fafaf7;--ink:#0f1012;--mid:#4e5157;--dim:#6b6f76;--line:#dcdcd6;--ok:#16733a;--warn:#875700;--bad:#b0261c;--state:var(--ink);
+--sans:"Schibsted Grotesk",system-ui,sans-serif;--mono:"Spline Sans Mono",ui-monospace,monospace;--ease:cubic-bezier(.2,.8,.2,1);--r0:0;--r1:3px}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1012;--ink:#efefea;--mid:#b4b6ba;--dim:#8c9096;--line:#2a2c30;--ok:#64c98a;--warn:#e8b552;--bad:#f2786c}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+.dna{position:fixed;top:8px;right:8px;font:500 12px/1 var(--mono);color:var(--dim);z-index:10}
+.index{position:fixed;left:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px;font:500 12px var(--mono);letter-spacing:.06em}
+.index a{color:var(--dim);text-decoration:none;min-height:28px;display:flex;align-items:center}
+.page{max-width:1200px;margin:0 auto;padding:0 16px 0 80px}
+.verdict{min-height:100dvh;display:grid;grid-template-rows:auto 1fr auto;padding:48px 0}
+h1{font:700 clamp(22px,2.2vw,28px)/1.2 var(--sans);letter-spacing:-.015em;max-width:30ch;margin:0}
+.sub{color:var(--mid);max-width:56ch;margin:8px 0 0}
+#status{align-self:center}#status[data-level=healthy]{--state:var(--ok)}#status[data-level=caution]{--state:var(--warn)}#status[data-level=halt]{--state:var(--bad)}
+.word{font:900 clamp(72px,16vw,220px)/.86 var(--sans);letter-spacing:-.05em;color:var(--state);margin:0}
+#status-text{font:400 clamp(18px,2vw,24px)/1.35 var(--sans);max-width:40ch;margin:16px 0 0}
+#reasons{list-style:none;padding:0;margin:12px 0 0;color:var(--mid)}#reasons code{font:500 12px var(--mono);color:var(--state)}
+.btn{font:500 14px var(--mono);min-height:44px;padding:0 20px;border:2px solid var(--ink);background:transparent;color:var(--ink);border-radius:var(--r0);cursor:pointer;margin-top:16px;transition:transform 160ms var(--ease),box-shadow 160ms var(--ease)}
+@media (hover:hover){.btn:hover{transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--ink)}}.btn:active{transform:scale(.97)}
+:focus-visible{outline:3px solid var(--state);outline-offset:3px}
+.metaline{font:400 13px var(--mono);color:var(--dim);display:flex;gap:24px;flex-wrap:wrap}
+section{display:grid;grid-template-columns:2fr 10fr;gap:24px;padding:48px 0;border-top:2px solid var(--ink)}
+section>.n{font:500 13px var(--mono);color:var(--dim)}
+h2{font:700 28px/1.1 var(--sans);letter-spacing:-.02em;margin:0 0 24px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{font:500 12px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--dim);text-align:left;padding:0 8px 8px 0}
+td{padding:12px 8px 12px 0;border-top:1px solid var(--line)}td[data-v],.m{font:400 14px var(--mono)}
+.k.rep{font-style:italic}
+#backing-line{font:400 clamp(20px,2.4vw,30px)/1.35 var(--sans);letter-spacing:-.01em;margin:0}
+.fig{font-weight:700}
+pre{font:400 14px/1.6 var(--mono);white-space:pre-wrap;word-break:break-all;margin:0}
+.lim li{font:700 clamp(20px,2.2vw,28px)/1.25 var(--sans);letter-spacing:-.015em;margin:0 0 16px}
+a{color:inherit}.replay{display:inline-flex;min-height:44px;align-items:center}
+footer{padding:24px 0 48px;color:var(--dim);border-top:1px solid var(--line)}
+@media (max-width:760px){.index{display:none}.page{padding:0 16px}section{grid-template-columns:1fr;gap:8px}.th-src,.td-src{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="dna">DNA-G-S-F-D-S</div>
+<nav class="index" aria-label="Sections"><a href="#s1">01</a><a href="#s2">02</a><a href="#s3">03</a><a href="#s4">04</a><a href="#s5">05</a></nav>
+<div class="page">
+<div class="verdict">
+  <div><h1>Backed watches Paxos' side of USDG and tells lending markets when to stop.</h1><p class="sub">A guard any contract can ask in the same transaction. It reads the chain itself where it can, and says so where it cannot.</p></div>
+  <div id="status" aria-live="polite"><p class="word" id="word" aria-hidden="true">—</p><p id="status-text">Reading Robinhood Chain…</p><ul id="reasons"></ul><button class="btn" id="retry" hidden>Try again</button></div>
+  <div class="metaline"><span id="read-meta">—</span><a class="replay" href="replay.html">See it stop a bad mint</a></div>
+</div>
+<section id="s1"><div class="n">01</div><div><table><thead><tr><th>What we read</th><th>Kind</th><th>Value</th><th class="th-src">Read from</th></tr></thead><tbody>
+<tr><td>Supply on this chain</td><td class="k">Read from the chain</td><td data-v="supply">—</td><td class="m td-src">0x5fc5…d168</td></tr>
+<tr><td>Supply, 1 h change</td><td class="k">Read from the chain</td><td data-v="change">—</td><td class="m td-src">0x60aa…52B5</td></tr>
+<tr><td>Minter set</td><td class="k">Read from the chain</td><td data-v="minters">—</td><td class="m td-src">0xdf5F…25D4</td></tr>
+<tr><td>Admin transfer</td><td class="k">Read from the chain</td><td data-v="admin">—</td><td class="m td-src">0x5fc5…d168</td></tr>
+<tr><td>Report age</td><td class="k rep">Posted by our reporter from the KPMG report</td><td data-v="age">—</td><td class="m td-src">0x60aa…52B5</td></tr></tbody></table></div></section>
+<section id="s2"><div class="n">02</div><div><h2>Backing, as attested</h2><p id="backing-line">—</p><p class="k rep">Posted by our reporter from the KPMG report</p><pre><a id="report-link" href="#">—</a>
+<span id="report-sha">—</span></pre></div></section>
+<section id="s3"><div class="n">03</div><div><h2>Who can mint USDG on Robinhood Chain</h2><table><tbody id="minters"><tr><td>—</td></tr></tbody></table></div></section>
+<section id="s4"><div class="n">04</div><div><h2>Use it in a Morpho market</h2><pre>new BackedMorphoOracle(IOracle(&lt;market's existing oracle&gt;), BackedGuard(0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5), 5000)</pre></div></section>
+<section id="s5" class="lim"><div class="n">05</div><div><h2>What Backed does not do</h2><ol>
+<li>It does not prove Paxos' reserves. The reserve figure is KPMG's, posted by us, with the report's hash so anyone can check it.</li>
+<li>It does not see other chains. A problem minted on Ethereum or Solana is not in these checks.</li>
+<li>It cannot see contract upgrades; USDG exposes no way to read them onchain.</li>
+<li>It does not protect money held in USDG. It protects people who accept USDG for something else.</li>
+<li>It never blocks repaying, withdrawing or liquidating.</li></ol></div></section>
+<footer>Not affiliated with Paxos or Robinhood. Source: <a href="https://github.com/Yonkoo11/backed">github.com/Yonkoo11/backed</a></footer>
+</div>
+<!--CHAIN-->
+<script>
+new MutationObserver(()=>{const s=document.getElementById('status');document.getElementById('word').textContent={healthy:'HEALTHY',caution:'CAUTION',halt:'HALT'}[s.dataset.level]||'—'}).observe(document.getElementById('status'),{attributes:true});
+</script>
+</body>
+</html>
