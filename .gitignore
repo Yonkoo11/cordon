@@ -35,3 +35,8 @@ venv/
 .vscode/
 *.swp
 deployments/local-*.json
+lib/morpho-blue/
+lib/forge-std/
+probe/reports/*.pdf
+probe/*.sol
+probe/mints.jsonl

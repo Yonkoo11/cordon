@@ -1,0 +1,22 @@
+No files changed, compilation skipped
+Ran 3 tests for test/fork/OverMint.t.sol:OverMintForkTest
+[PASS] test_healthyAllowsBorrow() (gas: 290269)
+Logs:
+  block 77085127
+  usdg supply 692395734701241
+  level 0
+  reasons 0
+  borrow succeeded 162742513682827045894
+[PASS] test_overMintHaltsBorrow() (gas: 283103)
+Logs:
+  block 77085127
+  usdg supply 992395734701241
+  level 2
+  reasons 1
+  borrow reverted
+[PASS] test_repayAndLiquidateStillWorkWhenHalted() (gas: 641789)
+Logs:
+  repay succeeded under HALT
+  liquidation succeeded under HALT, seized USDG 1000000000
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 24.89s (20.18s CPU time)
+Ran 1 test suite in 25.91s (24.89s CPU time): 3 tests passed, 0 failed, 0 skipped (3 total tests)
