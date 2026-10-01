@@ -26,6 +26,9 @@ jobs:
         run: |
           set -u
           from=$(cast wallet address --private-key "$KEEPER_KEY")
+          if [ "$(cast balance "$from" --rpc-url "$RPC")" = "0" ]; then
+            echo "::warning::keeper wallet $from has no gas on Robinhood Chain; checkpoint skipped"; exit 0
+          fi
           for i in 1 2 3; do
             if out=$(cast call "$GUARD" "checkpoint()" --from "$from" --rpc-url "$RPC" 2>&1); then
               cast send "$GUARD" "checkpoint()" --private-key "$KEEPER_KEY" --rpc-url "$RPC" --json | jq -r '"checkpointed in tx " + .transactionHash'
@@ -38,4 +41,5 @@ jobs:
           exit 1
       - name: Report guard status
         if: always()
-        run: echo "status (level, reasons): $(cast call "$GUARD" 'status()(uint8,uint256)' --rpc-url "$RPC" | tr '\n' ' ')"
+        run: |
+          echo "status (level, reasons): $(cast call "$GUARD" 'status()(uint8,uint256)' --rpc-url "$RPC" | tr '\n' ' ')"
