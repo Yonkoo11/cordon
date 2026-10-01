@@ -64,7 +64,7 @@ One guard per token per chain, and adapters that act on it. The loop:
 
 ## Verify it yourself in 90 seconds
 
-No key, no wallet, no RPC account. Every line below was run on a fresh clone on 2026-10-01; the results are in the comments.
+No key, no wallet, no RPC account. Every line below was run on a fresh clone from GitHub on 2026-10-01; the results are in the comments.
 
 ```bash
 git clone --recurse-submodules https://github.com/Yonkoo11/cordon && cd cordon
@@ -77,6 +77,8 @@ forge test --match-path test/fork/OverMint.t.sol --fork-url https://rpc.mainnet.
 cast call 0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541 "status()(uint8,uint256)" --rpc-url https://rpc.mainnet.chain.robinhood.com
 # → two numbers: level (0 healthy, 1 caution, 2 halt) and the reason bits. On 2026-10-01 at 10:41 UTC it read 1 and 4 (no baseline).
 ```
+
+If Foundry reports `BadRecordMac` from the public RPC, rerun the command; that is a TLS error between some clients and the endpoint, not a test failure.
 
 The fork test runs against Robinhood Chain mainnet state at the latest block: the real USDG contract, Paxos' real minter `0x2fb0…41a4` (impersonated on the fork), the real Morpho deployment and the real NVDA price oracle. It proves the guard and the adapter behave as stated against live contracts. It does not prove a curator will use them.
 
@@ -135,7 +137,7 @@ flowchart LR
 | Proof of Paxos' reserves | Not claimed. Cordon cannot see a bank account. |
 | Other chains (Ethereum, Solana, X Layer, Ink, Mantle) | Not checked. Supply minted elsewhere is invisible to this guard. |
 | Contract upgrades | Not detected. USDG exposes no onchain getter for its implementation. |
-| Automatic baselines | Not running yet. Anyone can call `checkpoint()`; until something does every half hour, the guard drifts to CAUTION. |
+| Automatic baselines | Running from one machine, every 32 minutes, since 2026-10-01. If it is off, the guard drifts to CAUTION (never HALT). Anyone can call `checkpoint()`. |
 | Adoption | None yet. Existing Morpho markets fix their oracle at creation, so only new markets can use the adapter. |
 | Protection for people who simply hold USDG | Not claimed. They hold USDG either way. |
 | Audit | Not audited. Slither reports no High or Medium findings; that is not an audit. |
