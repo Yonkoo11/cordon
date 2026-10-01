@@ -2,23 +2,23 @@
 pragma solidity 0.8.26;
 
 import {IOracle} from "morpho-blue/interfaces/IOracle.sol";
-import {BackedGuard} from "./BackedGuard.sol";
+import {CordonGuard} from "./CordonGuard.sol";
 
-/// @title BackedMorphoOracle
+/// @title CordonMorphoOracle
 /// @notice Wraps a Morpho market's existing oracle for USDG collateral. On HALT the collateral
 ///         price is discounted by `haltDiscountBps`; it never reverts, so repayments and
 ///         liquidations keep working.
-contract BackedMorphoOracle is IOracle {
+contract CordonMorphoOracle is IOracle {
     uint256 private constant BPS = 10_000;
 
     IOracle public immutable baseOracle;
-    BackedGuard public immutable guard;
+    CordonGuard public immutable guard;
     uint256 public immutable haltDiscountBps;
 
     error ZeroAddress();
     error BadDiscount();
 
-    constructor(IOracle baseOracle_, BackedGuard guard_, uint256 haltDiscountBps_) {
+    constructor(IOracle baseOracle_, CordonGuard guard_, uint256 haltDiscountBps_) {
         if (address(baseOracle_) == address(0) || address(guard_) == address(0)) revert ZeroAddress();
         if (haltDiscountBps_ == 0 || haltDiscountBps_ > BPS) revert BadDiscount();
         baseOracle = baseOracle_;

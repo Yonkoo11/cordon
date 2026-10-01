@@ -4,11 +4,11 @@ pragma solidity 0.8.26;
 import {Script, console2} from "forge-std/Script.sol";
 import {IMorpho, MarketParams} from "morpho-blue/interfaces/IMorpho.sol";
 import {IOracle} from "morpho-blue/interfaces/IOracle.sol";
-import {BackedGuard} from "../src/BackedGuard.sol";
-import {BackedMorphoOracle} from "../src/BackedMorphoOracle.sol";
+import {CordonGuard} from "../src/CordonGuard.sol";
+import {CordonMorphoOracle} from "../src/CordonMorphoOracle.sol";
 
 /// @notice Robinhood Chain mainnet: wraps the oracle of a live USDG-collateral NVDA market with
-///         Backed and creates the same market (same IRM, same LLTV) using the wrapper.
+///         Cordon and creates the same market (same IRM, same LLTV) using the wrapper.
 contract DeployMarket is Script {
     address internal constant USDG = 0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168;
     address internal constant NVDA = 0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC;
@@ -18,9 +18,9 @@ contract DeployMarket is Script {
 
     function run() external {
         uint256 pk = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        BackedGuard guard = BackedGuard(vm.envAddress("BACKED_GUARD"));
+        CordonGuard guard = CordonGuard(vm.envAddress("CORDON_GUARD"));
         vm.startBroadcast(pk);
-        BackedMorphoOracle oracle = new BackedMorphoOracle(IOracle(LIVE_NVDA_ORACLE), guard, 5000);
+        CordonMorphoOracle oracle = new CordonMorphoOracle(IOracle(LIVE_NVDA_ORACLE), guard, 5000);
         MarketParams memory m = MarketParams(NVDA, USDG, address(oracle), IRM, 0.625e18);
         IMorpho(MORPHO).createMarket(m);
         vm.stopBroadcast();

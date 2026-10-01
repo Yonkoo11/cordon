@@ -5,8 +5,8 @@ import {Test, console2} from "forge-std/Test.sol";
 import {IMorpho, MarketParams, Id} from "morpho-blue/interfaces/IMorpho.sol";
 import {IOracle} from "morpho-blue/interfaces/IOracle.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
-import {BackedGuard} from "../../src/BackedGuard.sol";
-import {BackedMorphoOracle} from "../../src/BackedMorphoOracle.sol";
+import {CordonGuard} from "../../src/CordonGuard.sol";
+import {CordonMorphoOracle} from "../../src/CordonMorphoOracle.sol";
 import {IPaxosToken} from "../../src/interfaces/IPaxos.sol";
 
 interface IPaxosMint {
@@ -29,7 +29,7 @@ contract OverMintForkTest is Test {
     uint256 internal constant RESERVES = 3_350_462_467e6;
     bytes32 internal constant REPORT_SHA = 0x384778246b4b117dcf136733334532f60fbf9b1001d15b731348c9c22e96e37e;
 
-    BackedGuard internal guard;
+    CordonGuard internal guard;
     MarketParams internal market;
     address internal lender = makeAddr("lender");
     address internal borrower = makeAddr("borrower");
@@ -37,12 +37,12 @@ contract OverMintForkTest is Test {
 
     function setUp() public {
         if (block.chainid != 4663) vm.skip(true);
-        guard = new BackedGuard(IPaxosToken(USDG), address(this), address(this), 2500, 1500, 1800, 7200, 62 days);
+        guard = new CordonGuard(IPaxosToken(USDG), address(this), address(this), 2500, 1500, 1800, 7200, 62 days);
         guard.postAttestation(1_788_210_000, OUTSTANDING, RESERVES, REPORT_SHA, "framerusercontent.com/assets/Xn1UQwAte85FnsDveIMX0n1qtVM.pdf");
         guard.checkpoint();
         vm.warp(block.timestamp + 31 minutes);
 
-        BackedMorphoOracle oracle = new BackedMorphoOracle(IOracle(LIVE_NVDA_ORACLE), guard, 5000);
+        CordonMorphoOracle oracle = new CordonMorphoOracle(IOracle(LIVE_NVDA_ORACLE), guard, 5000);
         market = MarketParams({loanToken: NVDA, collateralToken: USDG, oracle: address(oracle), irm: IRM, lltv: LLTV});
         IMorpho(MORPHO).createMarket(market);
 
@@ -67,7 +67,7 @@ contract OverMintForkTest is Test {
     }
 
     function _logStatus() internal view {
-        (BackedGuard.Level level, uint256 reasons) = guard.status();
+        (CordonGuard.Level level, uint256 reasons) = guard.status();
         console2.log("block", block.number);
         console2.log("usdg supply", IERC20(USDG).totalSupply());
         console2.log("level", uint8(level));
@@ -76,7 +76,7 @@ contract OverMintForkTest is Test {
 
     function test_healthyAllowsBorrow() public {
         _logStatus();
-        (BackedGuard.Level level,) = guard.status();
+        (CordonGuard.Level level,) = guard.status();
         assertEq(uint8(level), 0);
         uint256 amount = _borrowAmount();
         vm.prank(borrower);
@@ -91,7 +91,7 @@ contract OverMintForkTest is Test {
         IPaxosMint(USDG).mint(CONTROLLER, 300_000_000e6);
         assertEq(IERC20(USDG).totalSupply(), before + 300_000_000e6);
         _logStatus();
-        (BackedGuard.Level level, uint256 reasons) = guard.status();
+        (CordonGuard.Level level, uint256 reasons) = guard.status();
         assertEq(uint8(level), 2);
         assertEq(reasons, guard.SUPPLY_JUMP_HALT());
 

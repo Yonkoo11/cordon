@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Backed — is USDG still backed on Robinhood Chain?</title>
+<title>Cordon — is USDG still backed on Robinhood Chain?</title>
 <meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -120,7 +120,7 @@ body[data-stale="1"] [data-v],body[data-stale="1"] #backing-line,body[data-stale
 <div class="wrap">
 <header class="top">
   <div>
-    <h1>Backed watches Paxos' side of USDG and tells lending markets when to <em>stop.</em></h1>
+    <h1>Cordon watches Paxos' side of USDG and tells lending markets when to <em>stop.</em></h1>
     <p class="sub">A guard any contract can ask in the same transaction. It reads the chain itself where it can, and says so where it cannot.</p>
   </div>
   <div class="meta">
@@ -141,10 +141,10 @@ body[data-stale="1"] [data-v],body[data-stale="1"] #backing-line,body[data-stale
 <thead><tr><th>What we read</th><th>Kind</th><th>Value</th><th>Read from</th></tr></thead>
 <tbody>
 <tr><td class="label">Supply on this chain</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="supply">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" title="0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168">0x5fc5…d168</a></td></tr>
-<tr><td class="label">Supply, 1 h change</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="change">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5" title="0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5">0x60aa…52B5</a></td></tr>
+<tr><td class="label">Supply, 1 h change</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="change">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541" title="0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541">0x5A83…0541</a></td></tr>
 <tr><td class="label">Minter set</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="minters">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4" title="0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4">0xdf5F…25D4</a></td></tr>
 <tr><td class="label">Admin transfer</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="admin">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" title="0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168">0x5fc5…d168</a> <a href="https://robinhoodchain.blockscout.com/address/0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4" title="0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4">0xdf5F…25D4</a></td></tr>
-<tr><td class="label">Report age</td><td class="k"><span class="kind reported">Posted by our reporter from the KPMG report</span></td><td class="v" data-v="age">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5" title="0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5">0x60aa…52B5</a></td></tr>
+<tr><td class="label">Report age</td><td class="k"><span class="kind reported">Posted by our reporter from the KPMG report</span></td><td class="v" data-v="age">—</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541" title="0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541">0x5A83…0541</a></td></tr>
 </tbody>
 </table>
 </section>
@@ -170,29 +170,29 @@ body[data-stale="1"] [data-v],body[data-stale="1"] #backing-line,body[data-stale
 
 <section>
 <h2>Use it in a Morpho market</h2>
-<pre class="code"><code>new BackedMorphoOracle(
+<pre class="code"><code>new CordonMorphoOracle(
     IOracle(&lt;market's existing oracle&gt;),
-    BackedGuard(0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5),
+    CordonGuard(0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541),
     5000
 )
 
 <span class="c">// Robinhood Chain (4663)
-// BackedGuard         0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5
-// BackedMorphoOracle  0xac4a29515E0c2407ce0F4093C9143753F1b069F5
+// CordonGuard         0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541
+// CordonMorphoOracle  0x52FB7D121e576D8B0b06dD6fcA6C3D7454e7bf5C
 //   IOracle           0x548196c5A7D2127Ae69FBc69e2fEd9686Fdd7A10
 //   haltDiscountBps   5000
 // Morpho              0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010
-//   market id         0x99b038b2578a5f9fc142f5fedbd24c6de0e8a4bc81e51e8d8016d0621145a0e5
+//   market id         0x3a8f9ccf25583b6216f553d5d8b1a2c981818b2df61febf48d60080e6850c4cc
 // Arbitrum Sepolia (421614)
-// BackedGuard         0x3116355dADA421a9b483787b1f1e519331d70dA8</span></code></pre>
+// CordonGuard         0x2522423855550e82016103c79F097042Cf2d5a0B</span></code></pre>
 <p class="links">
-  <span>BackedGuard <a href="https://robinhoodchain.blockscout.com/address/0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5">Blockscout</a> <a href="https://repo.sourcify.dev/4663/0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5">Sourcify</a></span>
-  <span>BackedMorphoOracle <a href="https://robinhoodchain.blockscout.com/address/0xac4a29515E0c2407ce0F4093C9143753F1b069F5">Blockscout</a> <a href="https://repo.sourcify.dev/4663/0xac4a29515E0c2407ce0F4093C9143753F1b069F5">Sourcify</a></span>
+  <span>CordonGuard <a href="https://robinhoodchain.blockscout.com/address/0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541">Blockscout</a> <a href="https://repo.sourcify.dev/4663/0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541">Sourcify</a></span>
+  <span>CordonMorphoOracle <a href="https://robinhoodchain.blockscout.com/address/0x52FB7D121e576D8B0b06dD6fcA6C3D7454e7bf5C">Blockscout</a> <a href="https://repo.sourcify.dev/4663/0x52FB7D121e576D8B0b06dD6fcA6C3D7454e7bf5C">Sourcify</a></span>
 </p>
 </section>
 
 <section class="limits">
-<h2>What Backed does not do</h2>
+<h2>What Cordon does not do</h2>
 <ol>
 <li>It does not prove Paxos' reserves. The reserve figure is KPMG's, posted by us, with the report's hash so anyone can check it.</li>
 <li>It does not see other chains. A problem minted on Ethereum or Solana is not in these checks.</li>
@@ -203,7 +203,7 @@ body[data-stale="1"] [data-v],body[data-stale="1"] #backing-line,body[data-stale
 </section>
 </main>
 
-<footer>Not affiliated with Paxos or Robinhood. Source: <a href="https://github.com/Yonkoo11/backed">github.com/Yonkoo11/backed</a></footer>
+<footer>Not affiliated with Paxos or Robinhood. Source: <a href="https://github.com/Yonkoo11/cordon">github.com/Yonkoo11/cordon</a></footer>
 </div>
 <script type="module" src="chain.js"></script>
 </body>

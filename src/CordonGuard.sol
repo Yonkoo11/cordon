@@ -3,12 +3,12 @@ pragma solidity 0.8.26;
 
 import {IPaxosToken, ISupplyControl} from "./interfaces/IPaxos.sol";
 
-/// @title BackedGuard
+/// @title CordonGuard
 /// @notice Issuer-level circuit breaker for a Paxos stablecoin on one chain.
 ///         Trustless checks read the token and its SupplyControl directly. Reported checks use the
 ///         monthly attestation figure posted by `reporter`, labelled as such, and can never clear a
 ///         trustless reason.
-contract BackedGuard {
+contract CordonGuard {
     enum Level {
         HEALTHY,
         CAUTION,

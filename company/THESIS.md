@@ -1,4 +1,4 @@
-# Backed — company thesis
+# Cordon — company thesis
 
 Status: draft
 Started: 2026-10-01

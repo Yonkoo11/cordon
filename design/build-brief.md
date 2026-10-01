@@ -1,4 +1,4 @@
-# Build brief — Backed status page (direction: Proposal 1, "Ledger: solid line, dashed line")
+# Build brief — Cordon status page (direction: Proposal 1, "Ledger: solid line, dashed line")
 
 Every number here is a decision. Copy comes from ai/PRODUCT-BRIEF.md 5b verbatim; where this brief
 shows copy it is quoted from there. Read the whole brief before writing a line.
@@ -40,7 +40,7 @@ Deviation from P1 mockup: --ink-2/--ink-3 darkened in light (#55524a→#4f4c44, 
 5. Minters: h2 + table (controller link · cap · refill / s). Header labels "Controller", "Cap", "Refill per second" are nouns lifted from 5a.
 6. Use it: h2 + `pre` (sheet, shadow-2, overflow-x:auto inside the box) with the constructor call and deployed addresses as code comments; under it a mono link row (Blockscout / Sourcify per contract).
 7. Limits: h2 + ordered list, serif 19–23px, `01`..`05` mono counters, top hairline per item.
-8. Footer: 5b footer verbatim, link to https://github.com/Yonkoo11/backed.
+8. Footer: 5b footer verbatim, link to https://github.com/Yonkoo11/cordon.
 Section spacing: 72px between sections, 64px after status.
 
 ## Motif — solid vs dashed (three scales)
@@ -65,7 +65,7 @@ Section spacing: 72px between sections, 64px after status.
 
 ## Replay (web/replay.html)
 Same tokens and fonts. h1 = "See it stop a bad mint" (5b replay link text). `pre` loads `replay.txt` via fetch and shows it verbatim; on failure shows `Replay output not found. Run the command below to produce it.` Then the command in a `pre`:
-`forge test --match-test test_overMintHaltsBorrow --fork-url https://rpc.mainnet.chain.robinhood.com -vv`. Link back to index (text: "Backed", the product name).
+`forge test --match-test test_overMintHaltsBorrow --fork-url https://rpc.mainnet.chain.robinhood.com -vv`. Link back to index (text: "Cordon", the product name).
 
 ## Acceptance checklist
 - [ ] Every 5b string used on the page appears byte-identical (grep script, curly vs straight apostrophes as in 5b: straight `'`).

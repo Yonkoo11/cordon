@@ -1,22 +1,24 @@
-No files changed, compilation skipped
+Compiling 4 files with Solc 0.8.26
+Solc 0.8.26 finished in 842.27ms
+Compiler run successful!
 Ran 3 tests for test/fork/OverMint.t.sol:OverMintForkTest
-[PASS] test_healthyAllowsBorrow() (gas: 290269)
+[PASS] test_healthyAllowsBorrow() (gas: 290584)
 Logs:
-  block 77085127
-  usdg supply 692395734701241
+  block 77155393
+  usdg supply 692392000329430
   level 0
   reasons 0
-  borrow succeeded 162742513682827045894
-[PASS] test_overMintHaltsBorrow() (gas: 283103)
+  borrow succeeded 161902166689143500142
+[PASS] test_overMintHaltsBorrow() (gas: 283418)
 Logs:
-  block 77085127
-  usdg supply 992395734701241
+  block 77155393
+  usdg supply 992392000329430
   level 2
   reasons 1
   borrow reverted
-[PASS] test_repayAndLiquidateStillWorkWhenHalted() (gas: 641789)
+[PASS] test_repayAndLiquidateStillWorkWhenHalted() (gas: 642104)
 Logs:
   repay succeeded under HALT
   liquidation succeeded under HALT, seized USDG 1000000000
-Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 24.89s (20.18s CPU time)
-Ran 1 test suite in 25.91s (24.89s CPU time): 3 tests passed, 0 failed, 0 skipped (3 total tests)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 24.12s (17.86s CPU time)
+Ran 1 test suite in 25.17s (24.12s CPU time): 3 tests passed, 0 failed, 0 skipped (3 total tests)

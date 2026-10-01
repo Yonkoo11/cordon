@@ -1,6 +1,6 @@
-// Backed status page: reads Robinhood Chain in the visitor's browser. No wallet, no server.
+// Cordon status page: reads Robinhood Chain in the visitor's browser. No wallet, no server.
 const RPC = 'https://rpc.mainnet.chain.robinhood.com';
-const GUARD = '0x60aa769416EfBbc0A6BC9cb454758dE6f76D52B5';
+const GUARD = '0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541';
 const USDG = '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168';
 const SUPPLY_CONTROL = '0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4';
 const PUBLISHED = '2026-09-25'; // KPMG report publication date; not onchain
@@ -22,7 +22,7 @@ const SEL = {
 const STATUS_TEXT = [
   "HEALTHY. Nothing in Paxos' controls or posted backing needs attention.",
   'CAUTION. Something changed that a human should look at. Prices are not touched.',
-  'HALT. A trustless check or the posted backing failed. Markets using Backed discount USDG collateral.',
+  'HALT. A trustless check or the posted backing failed. Markets using Cordon discount USDG collateral.',
 ];
 const LEVEL_WORD = ['HEALTHY', 'CAUTION', 'HALT'];
 const REASONS = [
