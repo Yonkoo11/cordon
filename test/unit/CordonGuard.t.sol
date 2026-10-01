@@ -21,7 +21,7 @@ contract CordonGuardTest is Test {
         c[1] = address(0xB);
         sc = new MockSupplyControl(c);
         token = new MockPaxosToken(address(sc), BASE);
-        guard = new CordonGuard(IPaxosToken(address(token)), owner, reporter, 2500, 1500, 1800, 7200, 62 days);
+        guard = new CordonGuard(IPaxosToken(address(token)), owner, reporter, 2500, 1500, 1800, 7200, 62 days, 6 hours);
     }
 
     function _attest(uint64 periodEnd, uint256 outstanding, uint256 reserves) internal {
@@ -75,13 +75,67 @@ contract CordonGuardTest is Test {
         assertEq(reasons, guard.SUPPLY_JUMP_CAUTION());
     }
 
-    function test_baselineOlderThan2hIsIgnored() public {
+    /// @dev The fast baseline expires after 2 h, but the daily anchor still catches the jump, so a
+    ///      gap in checkpoints cannot be used to absorb a mint.
+    function test_jumpAfterCheckpointGapStillHalts() public {
         _healthy();
         vm.warp(block.timestamp + 7200);
+        token.setSupply(200e6);
+        (CordonGuard.Level level, uint256 reasons) = guard.status();
+        assertEq(uint8(level), 2);
+        assertTrue(reasons & guard.NO_BASELINE() != 0);
+        assertTrue(reasons & guard.SUPPLY_JUMP_HALT() != 0);
+        guard.checkpoint(); // checkpointing the inflated supply latches it instead of absorbing it
+        assertEq(guard.latchedBaseline(), BASE);
+    }
+
+    function test_anchorOlderThan2DaysIsIgnored() public {
+        _healthy();
+        vm.warp(block.timestamp + 2 days + 1);
         token.setSupply(200e6);
         (, uint256 reasons) = guard.status();
         assertTrue(reasons & guard.NO_BASELINE() != 0);
         assertEq(reasons & (guard.SUPPLY_JUMP_HALT() | guard.SUPPLY_JUMP_CAUTION()), 0);
+    }
+
+    /// @dev Review finding: many sub-25% mints, each checkpointed, walked the fast baseline up
+    ///      without limit. The anchor moves at most once a day, so the walk halts within a day.
+    function test_slowOverMintHaltsOnAnchor() public {
+        _healthy();
+        uint256 supply = BASE;
+        bool halted;
+        for (uint256 i; i < 48 && !halted; ++i) {
+            supply = supply * 124 / 100;
+            token.setSupply(supply);
+            guard.checkpoint();
+            halted = guard.isHalted();
+            vm.warp(block.timestamp + 1801);
+        }
+        assertTrue(halted, "a 24%-per-half-hour walk must halt");
+        assertLe(supply, BASE * 2, "halts within the first doubling");
+    }
+
+    function test_isHaltedIgnoresUnrelatedReadFailure() public {
+        _healthy();
+        token.setSupply(300e6);
+        vm.mockCallRevert(address(sc), abi.encodeWithSignature("getAllSupplyControllerAddresses()"), "");
+        assertTrue(guard.isHalted());
+    }
+
+    function test_futurePeriodRejected() public {
+        vm.prank(reporter);
+        vm.expectRevert(abi.encodeWithSelector(CordonGuard.PeriodInFuture.selector, uint64(block.timestamp + 1)));
+        guard.postAttestation(uint64(block.timestamp + 1), 1, 1, bytes32(0), "");
+    }
+
+    function test_pendingOwnerCanBeCancelled() public {
+        vm.startPrank(owner);
+        guard.transferOwnership(address(0xCAFE));
+        guard.transferOwnership(address(0));
+        vm.stopPrank();
+        vm.prank(address(0xCAFE));
+        vm.expectRevert(CordonGuard.NotPendingOwner.selector);
+        guard.acceptOwnership();
     }
 
     function test_checkpointTooSoonReverts() public {
@@ -144,11 +198,12 @@ contract CordonGuardTest is Test {
         assertEq(reasons, guard.ADMIN_TRANSFER_PENDING());
     }
 
-    function test_reservesBelowOutstandingHalts() public {
+    /// @dev Reported figures come from the reporter's key, so they stop at CAUTION.
+    function test_reservesBelowOutstandingCautions() public {
         _healthy();
         _attest(uint64(block.timestamp), 1_000e6, 999e6);
         (CordonGuard.Level level, uint256 reasons) = guard.status();
-        assertEq(uint8(level), 2);
+        assertEq(uint8(level), 1);
         assertTrue(reasons & guard.RESERVES_BELOW_OUTSTANDING() != 0);
     }
 
@@ -169,11 +224,11 @@ contract CordonGuardTest is Test {
         assertEq(reasons, guard.ATTESTATION_STALE());
     }
 
-    function test_supplyAboveAttestedTotalHalts() public {
+    function test_supplyAboveAttestedTotalCautions() public {
         _healthy();
         _attest(uint64(block.timestamp), 90e6, 91e6);
         (CordonGuard.Level level, uint256 reasons) = guard.status();
-        assertEq(uint8(level), 2);
+        assertEq(uint8(level), 1);
         assertTrue(reasons & guard.SUPPLY_ABOVE_ATTESTED_TOTAL() != 0);
     }
 
@@ -205,9 +260,9 @@ contract CordonGuardTest is Test {
 
     function test_constructorRejectsBadParams() public {
         vm.expectRevert(CordonGuard.BadParams.selector);
-        new CordonGuard(IPaxosToken(address(token)), owner, reporter, 1500, 2500, 1800, 7200, 62 days);
+        new CordonGuard(IPaxosToken(address(token)), owner, reporter, 1500, 2500, 1800, 7200, 62 days, 6 hours);
         vm.expectRevert(CordonGuard.ZeroAddress.selector);
-        new CordonGuard(IPaxosToken(address(token)), address(0), reporter, 2500, 1500, 1800, 7200, 62 days);
+        new CordonGuard(IPaxosToken(address(token)), address(0), reporter, 2500, 1500, 1800, 7200, 62 days, 6 hours);
     }
 
     /// forge-config: default.fuzz.runs = 2000
@@ -219,5 +274,137 @@ contract CordonGuardTest is Test {
         (CordonGuard.Level level, uint256 reasons) = guard.status();
         assertEq(level == CordonGuard.Level.HALT, reasons & guard.HALT_MASK() != 0);
         assertEq(level == CordonGuard.Level.HEALTHY, reasons == 0);
+    }
+
+    // ------------------------------------------------------------ no key can create HALT
+
+    /// forge-config: default.fuzz.runs = 2000
+    function testFuzz_noKeyCreatesHalt(uint96 outstanding, uint96 reserves, uint64 periodEnd, uint8 ownerOps) public {
+        _healthy();
+        periodEnd = uint64(bound(periodEnd, block.timestamp - 1 days + 1, block.timestamp));
+        _attest(periodEnd, outstanding, reserves);
+        vm.startPrank(owner);
+        if (ownerOps & 1 != 0) guard.recordControllers();
+        if (ownerOps & 2 != 0) guard.setReporter(address(0xBEEF));
+        if (ownerOps & 4 != 0) guard.transferOwnership(address(0xCAFE));
+        vm.stopPrank();
+        assertFalse(guard.isHalted(), "only a supply jump read from the chain may halt");
+    }
+
+    // ------------------------------------------------------------ release of a legitimate jump
+
+    function _latch(uint256 supply) internal {
+        _healthy();
+        token.setSupply(supply);
+        guard.checkpoint();
+        assertEq(guard.latchedBaseline(), BASE);
+    }
+
+    function test_scheduleReleaseNeedsLatch() public {
+        vm.prank(owner);
+        vm.expectRevert(CordonGuard.NotLatched.selector);
+        guard.scheduleRelease();
+    }
+
+    function test_releaseOnlyOwner() public {
+        _latch(130e6);
+        vm.expectRevert(CordonGuard.NotOwner.selector);
+        guard.scheduleRelease();
+        vm.expectRevert(CordonGuard.NotOwner.selector);
+        guard.executeRelease();
+        vm.expectRevert(CordonGuard.NotOwner.selector);
+        guard.cancelRelease();
+    }
+
+    function test_releaseTooEarlyReverts() public {
+        _latch(130e6);
+        vm.prank(owner);
+        guard.scheduleRelease();
+        uint64 at = guard.releaseExecutableAt();
+        vm.warp(at - 1);
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(CordonGuard.ReleaseTooEarly.selector, at));
+        guard.executeRelease();
+    }
+
+    /// @dev A 200M bridge-in on a 692M supply (+29%) halts; after notice it can be released.
+    function test_bridgeInHaltsThenReleasesAfterNotice() public {
+        _healthy();
+        token.setSupply(BASE * 892 / 692);
+        guard.checkpoint();
+        assertTrue(guard.isHalted());
+        vm.prank(owner);
+        guard.scheduleRelease();
+        // the keeper keeps checkpointing through the notice period
+        for (uint256 i; i < 12; ++i) {
+            vm.warp(block.timestamp + 1801);
+            guard.checkpoint();
+        }
+        assertTrue(guard.isHalted(), "still halted until the release executes");
+        vm.prank(owner);
+        guard.executeRelease();
+        assertEq(guard.latchedBaseline(), 0);
+        assertEq(guard.releaseSupply(), 0);
+        assertFalse(guard.isHalted());
+        vm.warp(block.timestamp + 1801);
+        guard.checkpoint();
+        assertEq(guard.latchedBaseline(), 0, "must not re-latch on the post-release baseline");
+    }
+
+    function test_releaseRefusedIfSupplyGrew() public {
+        _latch(130e6);
+        vm.prank(owner);
+        guard.scheduleRelease();
+        token.setSupply(131e6);
+        vm.warp(guard.releaseExecutableAt());
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(CordonGuard.SupplyGrewSinceSchedule.selector, 130e6, 131e6));
+        guard.executeRelease();
+    }
+
+    function test_cancelRelease() public {
+        _latch(130e6);
+        vm.startPrank(owner);
+        guard.scheduleRelease();
+        guard.cancelRelease();
+        vm.warp(block.timestamp + 6 hours);
+        vm.expectRevert(CordonGuard.NoReleaseScheduled.selector);
+        guard.executeRelease();
+        vm.stopPrank();
+        assertTrue(guard.isHalted());
+    }
+
+    function test_burnClearsLatchAndScheduledRelease() public {
+        _latch(130e6);
+        vm.prank(owner);
+        guard.scheduleRelease();
+        token.setSupply(BASE);
+        vm.warp(block.timestamp + 1801);
+        guard.checkpoint();
+        assertEq(guard.latchedBaseline(), 0);
+        assertEq(guard.releaseSupply(), 0);
+    }
+
+    // ------------------------------------------------------------ ownership
+
+    function test_twoStepOwnership() public {
+        address safe = makeAddr("safe");
+        vm.prank(owner);
+        guard.transferOwnership(safe);
+        assertEq(guard.owner(), owner);
+        vm.expectRevert(CordonGuard.NotPendingOwner.selector);
+        guard.acceptOwnership();
+        vm.prank(safe);
+        guard.acceptOwnership();
+        assertEq(guard.owner(), safe);
+        assertEq(guard.pendingOwner(), address(0));
+        vm.prank(owner);
+        vm.expectRevert(CordonGuard.NotOwner.selector);
+        guard.setReporter(address(1));
+    }
+
+    function test_releaseDelayMustCoverBaselineWindow() public {
+        vm.expectRevert(CordonGuard.BadParams.selector);
+        new CordonGuard(IPaxosToken(address(token)), owner, reporter, 2500, 1500, 1800, 7200, 62 days, 7199);
     }
 }

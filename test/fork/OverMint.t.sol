@@ -7,6 +7,7 @@ import {IOracle} from "morpho-blue/interfaces/IOracle.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {CordonGuard} from "../../src/CordonGuard.sol";
 import {CordonMorphoOracle} from "../../src/CordonMorphoOracle.sol";
+import {CordonOracleFactory} from "../../src/CordonOracleFactory.sol";
 import {IPaxosToken} from "../../src/interfaces/IPaxos.sol";
 
 interface IPaxosMint {
@@ -22,6 +23,8 @@ contract OverMintForkTest is Test {
     address internal constant IRM = 0x2BD3d5965B26B51814AC95127B2b80dD6CcC0fa1;
     address internal constant LIVE_NVDA_ORACLE = 0x548196c5A7D2127Ae69FBc69e2fEd9686Fdd7A10;
     address internal constant CONTROLLER = 0x2fb074FA59c9294c71246825C1c9A0c7782d41a4;
+    /// @dev Paxos' LayerZero OFT wrapper, a supply controller with a 200M cap: bridge-ins mint here.
+    address internal constant OFT_WRAPPER = 0x0d54755f5106BfdB43f7a35f5D49a23F940628d1;
     uint256 internal constant LLTV = 0.625e18;
 
     // KPMG, USDG Redemption Assets Report, 2026-08-31 (published 2026-09-25)
@@ -37,12 +40,12 @@ contract OverMintForkTest is Test {
 
     function setUp() public {
         if (block.chainid != 4663) vm.skip(true);
-        guard = new CordonGuard(IPaxosToken(USDG), address(this), address(this), 2500, 1500, 1800, 7200, 62 days);
+        guard = new CordonGuard(IPaxosToken(USDG), address(this), address(this), 2500, 1500, 1800, 7200, 62 days, 6 hours);
         guard.postAttestation(1_788_210_000, OUTSTANDING, RESERVES, REPORT_SHA, "framerusercontent.com/assets/Xn1UQwAte85FnsDveIMX0n1qtVM.pdf");
         guard.checkpoint();
         vm.warp(block.timestamp + 31 minutes);
 
-        CordonMorphoOracle oracle = new CordonMorphoOracle(IOracle(LIVE_NVDA_ORACLE), guard, 5000);
+        CordonMorphoOracle oracle = new CordonOracleFactory(guard).create(IOracle(LIVE_NVDA_ORACLE), 5000);
         market = MarketParams({loanToken: NVDA, collateralToken: USDG, oracle: address(oracle), irm: IRM, lltv: LLTV});
         IMorpho(MORPHO).createMarket(market);
 
@@ -126,5 +129,36 @@ contract OverMintForkTest is Test {
         vm.stopPrank();
         assertEq(seized, 1_000e6);
         console2.log("liquidation succeeded under HALT, seized USDG", seized);
+    }
+
+    /// @dev A legitimate 200M bridge-in halts like any jump; after the 6 h notice the owner releases
+    ///      it, and borrowing works again against the larger supply.
+    function test_bridgeInReleasedAfterNotice() public {
+        vm.prank(OFT_WRAPPER);
+        IPaxosMint(USDG).mint(OFT_WRAPPER, 200_000_000e6);
+        guard.checkpoint();
+        assertTrue(guard.isHalted());
+        console2.log("bridge-in of 200M latched HALT");
+
+        guard.scheduleRelease();
+        // Skipping 6 h makes the live NVDA feed report stale on the fork, so its price is held at
+        // the value it had before the skip. Only the time-dependent oracle is mocked; the guard,
+        // USDG and Morpho run live.
+        uint256 nvdaPrice = IOracle(LIVE_NVDA_ORACLE).price();
+        vm.mockCall(LIVE_NVDA_ORACLE, abi.encodeWithSelector(IOracle.price.selector), abi.encode(nvdaPrice));
+        for (uint256 i; i < 12; ++i) {
+            vm.warp(block.timestamp + 31 minutes);
+            guard.checkpoint();
+        }
+        assertTrue(guard.isHalted());
+        guard.executeRelease();
+        (CordonGuard.Level level,) = guard.status();
+        console2.log("after 6 h notice and release, level", uint8(level));
+        assertFalse(guard.isHalted());
+
+        uint256 amount = _borrowAmount();
+        vm.prank(borrower);
+        IMorpho(MORPHO).borrow(market, amount, 0, borrower, borrower);
+        console2.log("borrow succeeded after release", amount);
     }
 }

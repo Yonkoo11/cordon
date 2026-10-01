@@ -19,7 +19,7 @@ contract CordonMorphoOracleTest is Test {
         vm.warp(1_760_000_000);
         MockSupplyControl sc = new MockSupplyControl(new address[](0));
         token = new MockPaxosToken(address(sc), 100e6);
-        guard = new CordonGuard(IPaxosToken(address(token)), address(this), reporter, 2500, 1500, 1800, 7200, 62 days);
+        guard = new CordonGuard(IPaxosToken(address(token)), address(this), reporter, 2500, 1500, 1800, 7200, 62 days, 6 hours);
         oracle = new CordonMorphoOracle(IOracle(address(new MockOracle(BASE_PRICE))), guard, 5000);
         vm.prank(reporter);
         guard.postAttestation(uint64(block.timestamp), 1_000e6, 1_001e6, bytes32(0), "");
