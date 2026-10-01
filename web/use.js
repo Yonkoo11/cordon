@@ -41,16 +41,37 @@ function decodeString(hex) {
 }
 
 // ---------- JSON-RPC (reads) ----------
+// The public RPC refuses batches of about 50+ calls (measured 2026-10-01: 44 ok, 100 refused),
+// and the market list grows, so calls go out in groups of BATCH_MAX.
+const BATCH_MAX = 20;
+
 async function batch(calls) {
+  const out = [];
+  for (let i = 0; i < calls.length; i += BATCH_MAX) out.push(...await batchOnce(calls.slice(i, i + BATCH_MAX)));
+  return out;
+}
+
+async function batchOnce(calls) {
   const body = calls.map((c, i) => ({
     jsonrpc: '2.0', id: i, method: c.method || 'eth_call',
     params: c.params || [{ to: c.to, data: c.data }, 'latest'],
   }));
-  const res = await fetch(RPC, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const res = await postWithRetry(JSON.stringify(body));
   if (!res.ok) throw new Error('Robinhood Chain answered ' + res.status);
   const arr = await res.json();
+  if (!Array.isArray(arr)) throw new Error('Robinhood Chain sent an unexpected reply');
   const byId = new Map(arr.map((r) => [r.id, r]));
   return calls.map((_, i) => { const r = byId.get(i); return r && !r.error ? r.result : null; });
+}
+
+async function postWithRetry(body) {
+  const send = () => fetch(RPC, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+  try {
+    return await send();
+  } catch {
+    await new Promise((ok) => setTimeout(ok, 1500)); // one retry for a dropped connection
+    return send();
+  }
 }
 
 async function createMarketLogs() {
@@ -152,15 +173,17 @@ function renderMarkets() {
     const input = Object.assign(document.createElement('input'), { type: 'radio', name: 'market', value: i, disabled: m.cordon });
     input.addEventListener('change', () => { state.pick = m; state.wrapper = null; renderPlan(); });
     const name = document.createElement('span'); name.className = 'mk';
-    name.textContent = m.symbol + ' loan · LLTV ' + pct(m.lltv);
+    name.textContent = m.symbol + ' loan, LLTV ' + pct(m.lltv);
     const meta = document.createElement('span'); meta.className = 'mm';
-    meta.textContent = amount(m.supplied, m.decimals) + ' ' + m.symbol + ' supplied · ' + amount(m.borrowed, m.decimals) + ' borrowed · oracle ' + short(m.oracle)
-      + (m.current ? ' · already guarded by Cordon' : m.cordon ? ' · wraps an earlier Cordon guard' : '');
+    meta.textContent = amount(m.supplied, m.decimals) + ' ' + m.symbol + ' supplied, ' + amount(m.borrowed, m.decimals) + ' borrowed, oracle ' + short(m.oracle)
+      + (m.current ? ', already guarded by Cordon' : m.cordon ? ', wraps an earlier Cordon guard' : '');
     label.append(input, name, meta);
     li.append(label);
     return li;
   }));
-  setText('#markets-note', state.markets.length + ' Morpho markets on Robinhood Chain take USDG as collateral.');
+  setText('#markets-note', state.markets.length
+    ? state.markets.length + ' Morpho markets on Robinhood Chain take USDG as collateral.'
+    : 'No Morpho market on Robinhood Chain takes USDG as collateral yet.');
 }
 
 function setText(sel, t) { const el = $(sel); if (el) el.textContent = t; }
@@ -176,9 +199,26 @@ function renderPlan() {
     : 'On HALT, USDG collateral in this market is valued at ' + (keep * 100).toFixed(2).replace(/\.?0+$/, '') + '% of the price its oracle reports. '
       + 'New borrows then stop above ' + (Number(m.lltv) / 1e16 * keep).toFixed(1) + '% loan-to-value instead of ' + pct(m.lltv)
       + ', and any position above that line can be liquidated. Repaying and withdrawing keep working.');
-  $('#do-wrap').disabled = bps === null || !state.account;
+  renderGauge(m, bps);
+  $('#connect').disabled = !!state.account;
+  $('#do-wrap').disabled = bps === null || !state.account || !!state.wrapper;
   $('#do-market').disabled = !state.wrapper || !state.account;
   setText('#wrap-out', state.wrapper ? 'Wrapper ' + state.wrapper : '');
+}
+
+// the line: the market's LLTV as the rule, the lower line it drops to on HALT as the tick
+function renderGauge(m, bps) {
+  const g = $('#lltv-gauge');
+  const lltv = Number(m.lltv) / 1e16;
+  const halt = bps === null ? null : lltv * (10000 - bps) / 10000;
+  g.style.setProperty('--r', lltv);
+  g.style.setProperty('--t', halt === null ? lltv : halt);
+  g.querySelector('.g-tick').hidden = halt === null;
+  const lt = $('#lab-t'); const lr = $('#lab-r');
+  lt.hidden = halt === null;
+  lr.classList.toggle('end', lltv > 60);
+  lt.classList.toggle('end', halt !== null && halt > 60);
+  setText('#val-halt', halt === null ? '…' : halt.toFixed(1) + '%');
 }
 
 function fail(sel, e) { setText(sel, e && e.message ? e.message : String(e)); }

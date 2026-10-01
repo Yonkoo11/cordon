@@ -4,69 +4,35 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cordon: guard a Morpho market</title>
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
 <style>
-:root{
-  --paper:#f6f3ec; --sheet:#fffdf8; --ink:#1b1a17; --ink-2:#4f4c44; --ink-3:#66625a; --rule:#d9d3c5;
-  --ok:#1f6b3a; --ok-wash:#e4efe3; --warn:#835500; --warn-wash:#f5ead2; --bad:#a3231b; --bad-wash:#f6e0dc;
-  --serif:"Newsreader","Iowan Old Style",Georgia,serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
-  --r-sm:2px; --r-md:6px;
-  --ease:cubic-bezier(.2,.8,.2,1); --t-press:120ms; --t-hover:160ms; --t-state:320ms;
-  --shadow-1:0 1px 0 rgba(27,26,23,.04),0 1px 2px rgba(27,26,23,.08);
-  --shadow-2:inset 0 1px 0 rgba(255,255,255,.7),0 1px 2px rgba(27,26,23,.05),0 6px 16px -6px rgba(27,26,23,.12),0 18px 40px -20px rgba(27,26,23,.18);
-  --state:var(--ink-3); --wash:var(--sheet);
-}
-@media (prefers-color-scheme:dark){:root{
-  --paper:#12130f; --sheet:#1b1c18; --ink:#ece8de; --ink-2:#b9b4a7; --ink-3:#948f83; --rule:#33342e;
-  --ok:#74c993; --ok-wash:#172619; --warn:#e6b65a; --warn-wash:#29230f; --bad:#f08a7f; --bad-wash:#2d1a17;
-  --shadow-1:inset 0 1px 0 rgba(255,255,255,.05),0 1px 2px rgba(0,0,0,.4);
-  --shadow-2:inset 0 1px 0 rgba(255,255,255,.04),0 10px 30px -12px rgba(0,0,0,.65);
-}}
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.55 var(--serif);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;-webkit-tap-highlight-color:transparent}
-.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
-a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:var(--ink-3);border-radius:var(--r-sm);transition:background-color var(--t-hover) var(--ease),box-shadow var(--t-hover) var(--ease),text-decoration-color var(--t-hover) var(--ease)}
-@media (hover:hover){a:hover{text-decoration-color:var(--ink);background-color:var(--rule);box-shadow:0 0 0 3px var(--rule)}}
-:focus-visible{outline:none;box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--ink)}
-
-.btn{font:500 15px var(--mono);min-height:44px;padding:0 18px;border:0;border-radius:var(--r-sm);background:var(--ink);color:var(--paper);cursor:pointer;margin-top:16px;box-shadow:var(--shadow-1);transition:transform var(--t-hover) var(--ease),box-shadow var(--t-hover) var(--ease)}
-@media (hover:hover){.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-2)}}
-.btn:active{transform:scale(.97);transition-duration:var(--t-press)}
-.btn[hidden]{display:none}
-
-.top{padding:72px 0 32px}
-h1{font-weight:400;font-size:clamp(30px,4vw,48px);line-height:1.06;letter-spacing:-.025em;margin:0;max-width:20ch}
-.sub{color:var(--ink-2);margin:16px 0 0;max-width:60ch}
-.back{font:400 13px/1.5 var(--mono);color:var(--ink-3);display:inline-flex;min-height:44px;align-items:center}
-section{margin:0 0 56px}
-h2{font-weight:500;font-size:22px;line-height:1.2;letter-spacing:-.015em;margin:0 0 12px;display:flex;gap:12px;align-items:baseline}
-h2 .n{font:500 13px var(--mono);color:var(--ink-3)}
-.note{font:400 13px/1.6 var(--mono);color:var(--ink-3);margin:0 0 12px}
-#markets{list-style:none;margin:0;padding:0}
-#markets li{border-top:1px solid var(--rule)}
-#markets li:last-child{border-bottom:1px solid var(--rule)}
-#markets label{display:grid;grid-template-columns:28px 1fr;gap:2px 8px;padding:14px 0;cursor:pointer;min-height:44px}
-#markets input{grid-row:1 / span 2;margin:6px 0 0;width:18px;height:18px;accent-color:var(--ink)}
-#markets input:disabled+.mk{color:var(--ink-3)}
-.mk{font-size:18px}
-.mm{font:400 13px/1.5 var(--mono);color:var(--ink-3);grid-column:2;overflow-wrap:anywhere}
-.panel{background:var(--sheet);box-shadow:var(--shadow-2);border-radius:var(--r-md);padding:24px 28px}
-.field{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.field label{font:500 13px var(--mono);color:var(--ink-2)}
-.field input{font:500 17px var(--mono);width:110px;min-height:44px;padding:0 12px;border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--paper);color:var(--ink)}
-#math{margin:16px 0 0;max-width:62ch;color:var(--ink-2)}
-.steps{display:grid;gap:20px;margin-top:24px}
-.out{font:400 13px/1.6 var(--mono);color:var(--ink-2);margin:8px 0 0;overflow-wrap:anywhere}
-.btn{margin-top:0}
-.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
-footer{padding:32px 0 48px;color:var(--ink-2);font-size:15px;border-top:1px solid var(--rule);overflow-wrap:anywhere}
-@media (max-width:760px){.top{padding-top:40px}.panel{padding:20px 16px}}
-@media (prefers-reduced-motion:reduce){*,*::before{transition-duration:.01ms!important}}
-code{font-variant-ligatures:none}
+.top { padding-top: var(--s-4); }
+.back { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.top h1 { margin-top: var(--s-4); max-width: 22ch; }
+.top .sub { margin-top: var(--s-4); max-width: 68ch; }
+.top .connect { margin-top: var(--s-5); }
+main > section { margin-top: var(--s-7); }
+#markets { list-style: none; margin: 0; padding: 0; }
+#markets li { border-top: 1px solid var(--rule); }
+#markets li:last-child { border-bottom: 1px solid var(--rule); }
+#markets label { display: grid; grid-template-columns: 28px 1fr; gap: var(--s-1) var(--s-2); padding: var(--s-3) 0; cursor: pointer; min-height: 44px; }
+#markets input { grid-row: 1 / span 2; margin: var(--s-2) 0 0; width: 18px; height: 18px; accent-color: var(--accent); }
+#markets input:disabled + .mk { color: var(--ink-3); }
+.mk { font-size: 20px; line-height: 1.4; font-weight: 450; }
+.mm { font-size: 13px; line-height: 1.4; color: var(--ink-2); grid-column: 2; overflow-wrap: anywhere; }
+.field { display: flex; gap: var(--s-3); align-items: center; flex-wrap: wrap; }
+.field label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.field input { font: 500 16px var(--f-mono); width: 112px; min-height: 44px; padding: 0 var(--s-3); border: 1px solid var(--rule); border-radius: var(--r-control); background: var(--surface); color: var(--ink-1); }
+#plan .sheet { margin-top: var(--s-4); }
+#math { margin-top: var(--s-3); max-width: 62ch; color: var(--ink-2); }
+.steps { display: grid; gap: var(--s-5); margin-top: var(--s-4); }
+.out { font: 400 13px/1.6 var(--f-mono); color: var(--ink-2); margin-top: var(--s-2); overflow-wrap: anywhere; }
+#lltv-sheet .g-row { padding-top: 0; }
+@media (max-width: 760px) { main > section { margin-top: var(--s-6); } }
 </style>
 </head>
 <body>
@@ -75,31 +41,38 @@ code{font-variant-ligatures:none}
   <a class="back" href="./">Cordon status</a>
   <h1>Guard a Morpho market that takes USDG as collateral.</h1>
   <p class="sub">Pick a market, choose how hard USDG is marked down on HALT, then create the wrapper and the guarded market from your own wallet. Morpho fixes a market's oracle at creation, so this makes a new market with the same loan token, interest model and LLTV.</p>
+  <div class="connect">
+    <button class="btn" id="connect" type="button">Connect wallet</button>
+    <p class="out" id="account"></p>
+  </div>
 </header>
 
 <main>
 <section>
-  <h2><span class="n">01</span>Market</h2>
+  <h2>1. Market</h2>
   <p class="note" id="markets-note">Reading Morpho markets on Robinhood Chain…</p>
   <ul id="markets"></ul>
 </section>
 
 <section id="plan" hidden>
-  <h2><span class="n">02</span>Discount on HALT</h2>
-  <div class="panel">
-    <div class="field">
-      <label for="discount">Mark USDG down by (%)</label>
-      <input id="discount" type="number" inputmode="decimal" min="0.01" max="50" step="0.01" value="20">
+  <h2>2. Discount on HALT</h2>
+  <div class="field">
+    <label for="discount">Mark USDG down by (%)</label>
+    <input id="discount" type="number" inputmode="decimal" min="0.01" max="50" step="0.01" value="20">
+  </div>
+  <div class="sheet" id="lltv-sheet">
+    <div class="g-row has-lab stack">
+      <div class="g-head"><span class="g-cap">Loan-to-value, 0 to 100%</span><span class="g-val" id="val-halt">…</span></div>
+      <div class="gauge" id="lltv-gauge" style="--lo:0;--hi:100">
+        <span class="g-tick"></span><span class="g-rule"></span>
+        <span class="g-lab t low" id="lab-t">Borrow and liquidation line on HALT</span><span class="g-lab r" id="lab-r">Liquidation line today</span>
+      </div>
     </div>
     <p id="math"></p>
   </div>
 
-  <h2 style="margin-top:40px"><span class="n">03</span>Create it</h2>
+  <h2 style="margin-top: var(--s-7)">3. Create it</h2>
   <div class="steps">
-    <div>
-      <button class="btn" id="connect" type="button">Connect wallet</button>
-      <p class="out" id="account"></p>
-    </div>
     <div>
       <button class="btn" id="do-wrap" type="button" disabled>Create wrapper</button>
       <p class="out" id="wrap-out"></p>

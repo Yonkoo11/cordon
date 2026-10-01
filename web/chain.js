@@ -6,6 +6,7 @@ const SUPPLY_CONTROL = '0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4';
 const PUBLISHED = '2026-09-25'; // KPMG report publication date; not onchain
 const TIMEOUT_MS = 8000;
 const REFRESH_MS = 60000;
+const ANCHOR_MAX_AGE = 2 * 86400; // CordonGuard.ANCHOR_MAX_AGE
 const DASH = '…';
 
 // selectors from `cast sig`
@@ -23,14 +24,14 @@ const SEL = {
 };
 
 const STATUS_TEXT = [
-  "HEALTHY. Nothing in Paxos' controls or posted backing needs attention.",
-  'CAUTION. Something changed that a human should look at. Prices are not touched.',
-  'HALT. USDG supply on this chain jumped more than 25%, read from the chain itself. Markets using Cordon discount USDG collateral.',
+  "HEALTHY. USDG supply and Paxos' controls on Robinhood Chain look normal.",
+  'CAUTION. Something changed that a person should look at. Prices are not touched.',
+  'HALT. USDG supply on this chain jumped more than 25%, read from the chain. Markets using Cordon discount USDG collateral.',
 ];
 const LEVEL_WORD = ['HEALTHY', 'CAUTION', 'HALT'];
 const REASONS = [
   'Supply on this chain rose more than 25% against the last hour or the last day.',
-  'Supply on this chain rose more than 15% within an hour.',
+  'Supply on this chain rose more than 15% against the last hour.',
   'No supply snapshot from the last two hours. Anyone can add one by calling checkpoint().',
   'The set of addresses allowed to mint USDG changed.',
   "A change of USDG's admin is scheduled.",
@@ -135,6 +136,7 @@ async function readAll(signal) {
       return { address: a, cap: big(w[0]), refill: big(w[1]) };
     }),
     block: { number: Number(BigInt(block.number)), timestamp: Number(BigInt(block.timestamp)) },
+    anchorSupply: big(words(anchorHex)[0]),
     anchorAt: Number(big(words(anchorHex)[1])),
     release: { supply: BigInt(relSupplyHex), at: Number(BigInt(relAtHex)) },
   };
@@ -154,15 +156,79 @@ const utcTime = (sec) => new Date(sec * 1000).toISOString().slice(11, 19) + ' UT
 const ago = (sec) => (sec < 3600 ? Math.round(sec / 60) + ' min' : (sec / 3600).toFixed(1) + ' h') + ' ago';
 const short = (a) => a.slice(0, 6) + '…' + a.slice(-4);
 const ZERO = '0x0000000000000000000000000000000000000000';
+// percent change of `now` against `base`, 3 decimals of precision, as a Number
+const changePct = (now, base) => Number(((now - base) * 100000n) / base) / 1000;
+const signed = (p) => (p >= 0 ? '+' : '') + p.toFixed(1) + '%';
 
-// ---------- rendering ----------
+// ---------- DOM helpers ----------
 const $ = (s) => document.querySelector(s);
 const setText = (sel, text) => { const el = $(sel); if (el) el.textContent = text; };
+function el(tag, className, text) {
+  const n = document.createElement(tag);
+  if (className) n.className = className;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+const fig = (text) => el('span', 'mono', text);
 
+// ---------- the line: gauge helpers ----------
+let firstRead = true; // bars grow once, on the first successful read only
+
+function setBar(bar, value, base) {
+  const g = bar.parentElement;
+  const lo = Number(g.style.getPropertyValue('--lo'));
+  const hi = Number(g.style.getPropertyValue('--hi'));
+  const v = Math.min(hi, Math.max(lo, value));
+  bar.hidden = false;
+  bar.style.setProperty('--a', Math.min(base, v));
+  bar.style.setProperty('--b', Math.max(base, v));
+  bar.classList.toggle('neg', v < base);
+  bar.classList.toggle('over', value > hi);
+  bar.classList.toggle('over-l', value < lo);
+}
+
+function noBar(sel, valueSel, words) {
+  $(sel).hidden = true;
+  const v = $(valueSel);
+  v.textContent = words;
+  v.classList.add('words');
+}
+
+function showValue(valueSel, text) {
+  const v = $(valueSel);
+  v.textContent = text;
+  v.classList.remove('words');
+}
+
+function revealGauge(g) {
+  if (firstRead) void g.offsetWidth; // commit the zero state so the first reveal animates
+  g.classList.add('read');
+}
+
+function mintRow(c, supply, last) {
+  const pct = supply > 0n ? Number((c.cap * 100000n) / supply) / 1000 : 0;
+  const row = el('div', 'g-row' + (last ? ' has-lab' : ''));
+  const link = el('a', null, short(c.address));
+  link.href = 'https://robinhoodchain.blockscout.com/address/' + c.address;
+  link.title = c.address;
+  const id = el('span', 'g-id'); id.append(link);
+  const cap = el('span', 'g-cap'); cap.append(id, 'Cap ' + amount6(c.cap) + ' USDG, refills ' + amount6(c.refill) + ' per second');
+  const head = el('div', 'g-head'); head.append(cap, el('span', 'g-val', pct > 0 && pct < 0.01 ? '<0.01%' : pct.toFixed(1) + '%'));
+  const g = el('div', 'gauge');
+  g.style.cssText = '--lo:0;--hi:150;--t:25;--r:25';
+  const bar = el('span', 'g-bar'); g.append(bar);
+  setBar(bar, pct, 0);
+  g.append(el('span', 'g-rule'));
+  if (last) g.append(Object.assign(el('span', 'g-lab r', 'A mint this size halts')));
+  row.append(head, g);
+  return { row, gauge: g };
+}
+
+// ---------- rendering ----------
 function renderEmpty() {
-  document.querySelectorAll('[data-v]').forEach((el) => { el.textContent = DASH; });
+  document.querySelectorAll('[data-v]').forEach((e) => { e.textContent = DASH; });
   setText('#backing-line', DASH);
-  setText('#read-meta', DASH);
+  setRead(DASH);
 }
 
 function setState(state, level) {
@@ -172,90 +238,104 @@ function setState(state, level) {
   if (word) document.body.dataset.level = word.toLowerCase();
   else delete document.body.dataset.level;
   $('#retry').hidden = state !== 'error';
-  if (state === 'loading') { setText('#status-text', LOADING_TEXT); $('#reasons').replaceChildren(); }
-  if (state === 'error') { setText('#status-text', ERROR_TEXT); $('#reasons').replaceChildren(); }
-  document.body.dataset.stale = state === 'error' && $('#status').dataset.had === '1' ? '1' : '0';
+  if (state === 'loading') { setVerdict('', LOADING_TEXT); $('#reasons').replaceChildren(); }
+  if (state === 'error') { setVerdict('', ERROR_TEXT); $('#reasons').replaceChildren(); }
+  document.body.dataset.stale = state === 'error' && box.dataset.had === '1' ? '1' : '0';
 }
 
-function renderData(d) {
-  const box = $('#status');
-  box.dataset.had = '1';
-  setState('ready', d.level);
-  setText('#status-text', STATUS_TEXT[d.level] || STATUS_TEXT[1]);
-  const list = $('#reasons');
-  list.replaceChildren(...REASONS.flatMap((text, bit) => {
-    if (!(d.reasons & (1n << BigInt(bit)))) return [];
-    const li = document.createElement('li');
-    li.dataset.kind = bit >= 5 ? 'reported' : 'trustless';
-    const code = document.createElement('code');
-    code.textContent = 'bit ' + bit;
-    li.append(code, document.createTextNode(' ' + text));
-    return [li];
-  }));
+function setVerdict(word, rest) {
+  setText('#status-word', word);
+  setText('#status-rest', (word ? ' ' : '') + rest);
+}
 
+function renderVerdict(d) {
+  $('#status').dataset.had = '1';
+  setState('ready', d.level);
+  const text = STATUS_TEXT[d.level] || STATUS_TEXT[1];
+  const cut = text.indexOf('. ') + 1;
+  setVerdict(text.slice(0, cut), text.slice(cut + 1));
+  const items = REASONS.flatMap((text, bit) => (d.reasons & (1n << BigInt(bit)) ? [el('li', null, text)] : []));
+  $('#reasons').replaceChildren(...items.slice(0, 3));
+}
+
+function renderTable(d) {
   const a = d.attestation;
-  // What we read
   setText('[data-v="supply"]', comma(units(d.supply)) + ' USDG');
-  if (d.band.ok && d.band.supply > 0n) {
-    const bps = Number(((d.supply - d.band.supply) * 100000n) / d.band.supply) / 1000;
-    setText('[data-v="change"]', (bps >= 0 ? '+' : '') + bps.toFixed(1) + '%');
-  } else {
-    setText('[data-v="change"]', 'no baseline');
-  }
+  const hourly = d.band.ok && d.band.supply > 0n;
+  setText('[data-v="change"]', hourly ? signed(changePct(d.supply, d.band.supply)) : 'no baseline');
   const changed = (d.reasons & (1n << 3n)) !== 0n;
   setText('[data-v="minters"]', (changed ? 'changed' : 'unchanged') + ' (' + d.controllers.length + ')');
   const pend = [d.tokenPending, d.controlPending].filter((p) => p.next !== ZERO || p.at > 0);
   setText('[data-v="admin"]', pend.length ? 'pending ' + pend.map((p) => short(p.next)).join(', ') : 'none pending');
   const now = d.block.timestamp;
-  const snaps = [];
-  snaps.push(d.band.ok ? 'hourly ' + ago(now - d.band.timestamp) : 'no hourly snapshot in range');
-  snaps.push(d.anchorAt > 0 ? 'daily ' + ago(now - d.anchorAt) : 'no daily snapshot');
-  setText('[data-v="snapshots"]', snaps.join(' · '));
+  setText('[data-v="snapshots"]', [
+    d.band.ok ? 'hourly ' + ago(now - d.band.timestamp) : 'no hourly snapshot in range',
+    d.anchorAt > 0 ? 'daily ' + ago(now - d.anchorAt) : 'no daily snapshot',
+  ].join(', '));
   setText('[data-v="release"]', d.release.supply > 0n
     ? 'scheduled, can execute at ' + utcTime(d.release.at) + ' ' + isoDate(d.release.at)
     : 'none scheduled');
-  if (a.periodEnd > 0) {
-    const days = Math.floor((d.block.timestamp - a.periodEnd) / 86400);
-    setText('[data-v="age"]', days + ' days');
-  } else {
-    setText('[data-v="age"]', 'none posted');
-  }
-
-  // Backing, as attested
-  if (a.periodEnd > 0 && a.outstanding > 0n) {
-    const excess = Number(((a.reserves - a.outstanding) * 1000000n) / a.outstanding) / 10000;
-    const line = $('#backing-line');
-    line.replaceChildren(
-      'On ', fig(isoDate(a.periodEnd)), ', KPMG attested ', fig(comma(units(a.outstanding))),
-      ' USDG outstanding across all chains and ', fig('$' + comma(units(a.reserves))),
-      ' in reserves (', fig(excess.toFixed(2) + '%'), ' above par). Published ', fig(PUBLISHED), '.',
-    );
-    const link = $('#report-link');
-    if (link && /^https:\/\//.test(a.uri)) { link.href = a.uri; link.textContent = a.uri.replace(/^https:\/\//, ''); }
-    setText('#report-sha', a.sha);
-  }
-
-  // Who can mint
-  const body = $('#minters');
-  body.replaceChildren(...d.controllers.map((c) => {
-    const tr = document.createElement('tr');
-    const td1 = document.createElement('td');
-    const l = document.createElement('a');
-    l.href = 'https://robinhoodchain.blockscout.com/address/' + c.address;
-    l.textContent = short(c.address);
-    l.title = c.address;
-    td1.className = 'm';
-    td1.append(l);
-    const td2 = document.createElement('td'); td2.className = 'v'; td2.textContent = amount6(c.cap) + ' USDG';
-    const td3 = document.createElement('td'); td3.className = 'v'; td3.textContent = amount6(c.refill) + ' / s';
-    tr.append(td1, td2, td3);
-    return tr;
-  }));
-
-  setText('#read-meta', 'block ' + comma(BigInt(d.block.number)) + ' · ' + utcTime(d.block.timestamp));
+  setText('[data-v="age"]', a.periodEnd > 0 ? Math.floor((now - a.periodEnd) / 86400) + ' days' : 'none posted');
 }
 
-function fig(text) { const s = document.createElement('span'); s.className = 'fig'; s.textContent = text; return s; }
+function renderSupplyGauges(d) {
+  setText('#supply', comma(units(d.supply)));
+  const hourly = d.band.ok && d.band.supply > 0n;
+  const dailyOk = d.anchorSupply > 0n && d.anchorAt > 0 && d.block.timestamp - d.anchorAt <= ANCHOR_MAX_AGE;
+  const rows = [['#bar-hourly', '#val-hourly', hourly, d.band.supply], ['#bar-daily', '#val-daily', dailyOk, d.anchorSupply]];
+  for (const [bar, val, ok, base] of rows) {
+    if (!ok) { noBar(bar, val, 'No snapshot in range'); continue; }
+    const p = changePct(d.supply, base);
+    setBar($(bar), p, 0);
+    showValue(val, signed(p));
+  }
+}
+
+function renderBacking(d) {
+  const a = d.attestation;
+  if (!(a.periodEnd > 0 && a.outstanding > 0n)) return;
+  const ratio = Number((a.reserves * 1000000n) / a.outstanding) / 10000; // reserves as % of outstanding
+  const excess = ratio - 100;
+  $('#backing-line').replaceChildren(
+    'On ', fig(isoDate(a.periodEnd)), ', KPMG attested ', fig(comma(units(a.outstanding))),
+    ' USDG outstanding across all chains and ', fig('$' + comma(units(a.reserves))),
+    ' in reserves, ', fig(Math.abs(excess).toFixed(2) + '%'), excess < 0 ? ' below par' : ' above par',
+    '. Published ', PUBLISHED, '. Posted on chain by our reporter.',
+  );
+  const bar = $('#bar-backing');
+  setBar(bar, ratio, 98);
+  bar.classList.toggle('low', ratio < 100);
+  showValue('#val-backing', ratio.toFixed(2) + '%');
+  const link = $('#report-link');
+  if (link && /^https:\/\//.test(a.uri)) { link.href = a.uri; link.textContent = a.uri.replace(/^https:\/\//, ''); }
+  setText('#report-sha', a.sha);
+}
+
+function renderMinters(d) {
+  const box = $('#minters');
+  const made = d.controllers.map((c, i) => mintRow(c, d.supply, i === d.controllers.length - 1));
+  box.replaceChildren(...made.map((m) => m.row));
+  return made.map((m) => m.gauge);
+}
+
+// the sentence exists twice in the page (beside the button on desktop, after the gauges at 390); CSS shows one
+function setRead(text) { document.querySelectorAll('.lastread').forEach((n) => { n.textContent = text; }); }
+
+function renderMeta(d) {
+  setRead('Read at ' + utcTime(d.block.timestamp) + ' from block ' + comma(BigInt(d.block.number)) + '. Re-read every 60 seconds.');
+}
+
+function renderData(d) {
+  renderVerdict(d);
+  renderTable(d);
+  renderSupplyGauges(d);
+  renderBacking(d);
+  const mintGauges = renderMinters(d);
+  renderMeta(d);
+  const fixed = [...document.querySelectorAll('.gauge')].filter((g) => !g.closest('#minters'));
+  [...fixed, ...mintGauges].forEach(revealGauge);
+  firstRead = false;
+}
 
 // ---------- loop ----------
 let inflight = null;
@@ -270,7 +350,7 @@ async function run() {
     const d = await readAll(ctrl.signal);
     if (inflight === ctrl) renderData(d);
   } catch (e) {
-    if (inflight === ctrl) setState('error');
+    if (inflight === ctrl) { setState('error'); document.querySelectorAll('[data-static]').forEach(revealGauge); }
   } finally {
     clearTimeout(kill);
     if (inflight === ctrl) inflight = null;

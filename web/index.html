@@ -3,193 +3,199 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cordon: is USDG still backed on Robinhood Chain?</title>
-<meta name="color-scheme" content="light dark">
+<title>Cordon: a circuit breaker for USDG on Robinhood Chain</title>
+<meta name="color-scheme" content="light">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
 <style>
-:root{
-  --paper:#f6f3ec; --sheet:#fffdf8; --ink:#1b1a17; --ink-2:#4f4c44; --ink-3:#66625a; --rule:#d9d3c5;
-  --ok:#1f6b3a; --ok-wash:#e4efe3; --warn:#835500; --warn-wash:#f5ead2; --bad:#a3231b; --bad-wash:#f6e0dc;
-  --serif:"Newsreader","Iowan Old Style",Georgia,serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
-  --r-sm:2px; --r-md:6px;
-  --ease:cubic-bezier(.2,.8,.2,1); --t-press:120ms; --t-hover:160ms; --t-state:320ms;
-  --shadow-1:0 1px 0 rgba(27,26,23,.04),0 1px 2px rgba(27,26,23,.08);
-  --shadow-2:inset 0 1px 0 rgba(255,255,255,.7),0 1px 2px rgba(27,26,23,.05),0 6px 16px -6px rgba(27,26,23,.12),0 18px 40px -20px rgba(27,26,23,.18);
-  --state:var(--ink-3); --wash:var(--sheet);
+.top { padding-top: var(--s-7); }
+.top h1 { max-width: 26ch; }
+.top .sub { margin-top: var(--s-4); }
+
+/* first screen: verdict + gauge sheet on the left, number and action on the right */
+.hero { display: grid; grid-template-columns: 7fr 4fr; grid-template-rows: auto 1fr; column-gap: var(--s-6); margin-top: var(--s-6); }
+.hero .bg { grid-column: 1; grid-row: 1 / 3; padding: 0; }
+.verdict { grid-column: 1; grid-row: 1; position: relative; padding: var(--s-5) var(--s-5) 0; }
+.gauges { grid-column: 1; grid-row: 2; position: relative; padding: var(--s-5) var(--s-5) var(--s-3); }
+.side { grid-column: 2; grid-row: 1 / 3; padding-top: var(--s-5); }
+.lastread { font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+.lastread.in-side { margin-top: var(--s-5); }
+.lastread.after { display: none; }
+.side .label { display: block; }
+#supply { font: 500 28px/1.15 var(--f-mono); letter-spacing: -.01em; margin: var(--s-1) 0 var(--s-5); overflow-wrap: anywhere; }
+.side .link-2 { margin-top: var(--s-3); }
+#status-text { font-size: 20px; line-height: 1.4; font-weight: 450; letter-spacing: -.005em; max-width: 52ch; }
+#status-word { font-weight: 600; color: var(--state); transition: color var(--t) var(--ease); }
+#reasons { list-style: none; margin: var(--s-3) 0 0; padding: 0; max-width: 60ch; }
+#reasons:empty { display: none; }
+#reasons li { padding: var(--s-1) 0; color: var(--ink-2); }
+#retry { margin-top: var(--s-4); }
+body[data-stale="1"] [data-v], body[data-stale="1"] .g-bar, body[data-stale="1"] #backing-line, body[data-stale="1"] #minters { opacity: .55; }
+
+/* reading table */
+table { width: 100%; border-collapse: collapse; margin-top: var(--s-3); }
+th { font-size: 13px; font-weight: 500; line-height: 1.4; color: var(--ink-2); text-align: left; padding: var(--s-2) var(--s-4) var(--s-2) 0; border-bottom: 1px solid var(--rule); }
+th:nth-child(3), td.v { text-align: right; }
+td { padding: var(--s-3) var(--s-4) var(--s-3) 0; border-bottom: 1px solid var(--rule); vertical-align: baseline; }
+td.v { font-family: var(--f-mono); }
+td.m a { white-space: nowrap; font-family: var(--f-mono); font-size: 13px; }
+td.k { color: var(--ink-2); }
+
+.gauges.plain { padding: 0; max-width: 760px; margin-top: var(--s-4); }
+.proof { font: 400 13px/1.6 var(--f-mono); color: var(--ink-2); margin-top: var(--s-3); overflow-wrap: anywhere; }
+.proof a { display: inline-block; }
+dl.addr { display: grid; grid-template-columns: max-content 1fr; gap: var(--s-1) var(--s-5); margin: var(--s-5) 0 0; font-size: 13px; line-height: 1.6; }
+dl.addr dt { color: var(--ink-2); font-weight: 500; }
+dl.addr dd { margin: 0; font-family: var(--f-mono); overflow-wrap: anywhere; }
+.links { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-5); margin-top: var(--s-4); font-size: 13px; }
+.links a { display: inline-flex; align-items: center; min-height: 32px; }
+.use-btn { margin-top: var(--s-4); }
+.limits ol { margin: 0; padding: 0 0 0 var(--s-5); max-width: 68ch; }
+.limits li { font-size: 20px; line-height: 1.4; font-weight: 450; letter-spacing: -.005em; padding: var(--s-2) 0 var(--s-2) var(--s-1); }
+.limits li::marker { color: var(--ink-3); }
+
+@media (max-width: 760px) {
+  .top { padding-top: var(--s-6); }
+  .hero { grid-template-columns: 1fr; margin-top: var(--s-5); }
+  .hero .bg { grid-column: 1; grid-row: 1; }
+  .verdict { grid-column: 1; grid-row: 1; padding: var(--s-4); }
+  .side { grid-column: 1; grid-row: 2; padding-top: var(--s-6); }
+  .gauges { grid-column: 1; grid-row: 3; padding: var(--s-5) 0 0; }
+  .lastread.in-side { display: none; }
+  .lastread.after { display: block; grid-column: 1; grid-row: 4; padding-top: var(--s-2); }
+  .hero { grid-template-rows: none; }
+  #supply { font-size: 20px; margin-bottom: var(--s-4); }
+  .read thead { display: none; }
+  .read tr { display: grid; grid-template-columns: 1fr auto; gap: var(--s-1) var(--s-3); padding: var(--s-3) 0; border-bottom: 1px solid var(--rule); }
+  .read td { border: 0; padding: 0; }
+  .read td.rl { grid-column: 1; }
+  .read td.v { grid-column: 2; grid-row: 1; }
+  .read td.k, .read td.m { grid-column: 1 / -1; font-size: 13px; }
+  .limits li { font-size: 20px; }
+  dl.addr { grid-template-columns: 1fr; gap: 0; }
+  dl.addr dd { margin-bottom: var(--s-3); }
+  pre.code { padding: var(--s-4); }
 }
-@media (prefers-color-scheme:dark){:root{
-  --paper:#12130f; --sheet:#1b1c18; --ink:#ece8de; --ink-2:#b9b4a7; --ink-3:#948f83; --rule:#33342e;
-  --ok:#74c993; --ok-wash:#172619; --warn:#e6b65a; --warn-wash:#29230f; --bad:#f08a7f; --bad-wash:#2d1a17;
-  --shadow-1:inset 0 1px 0 rgba(255,255,255,.05),0 1px 2px rgba(0,0,0,.4);
-  --shadow-2:inset 0 1px 0 rgba(255,255,255,.04),0 10px 30px -12px rgba(0,0,0,.65);
-}}
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.55 var(--serif);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;-webkit-tap-highlight-color:transparent}
-.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
-a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:var(--ink-3);border-radius:var(--r-sm);transition:background-color var(--t-hover) var(--ease),box-shadow var(--t-hover) var(--ease),text-decoration-color var(--t-hover) var(--ease)}
-@media (hover:hover){a:hover{text-decoration-color:var(--ink);background-color:var(--rule);box-shadow:0 0 0 3px var(--rule)}}
-:focus-visible{outline:none;box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--ink)}
-
-/* header */
-.top{display:grid;grid-template-columns:7fr 4fr;gap:48px;padding:72px 0 32px;align-items:end}
-h1{font-weight:400;font-size:clamp(32px,4.6vw,56px);line-height:1.04;letter-spacing:-.025em;margin:0;max-width:18ch}
-h1 em{font-style:italic;color:var(--state);transition:color var(--t-state) var(--ease)}
-.sub{color:var(--ink-2);margin:16px 0 0;max-width:52ch}
-.meta{font:400 13px/1.5 var(--mono);color:var(--ink-3);display:grid;gap:8px;justify-items:start}
-.cta{display:inline-flex;align-items:center;min-height:44px;font:500 15px var(--mono);color:var(--ink)}
-
-/* status band: motif, large scale (solid edge) */
-.status{position:relative;background:var(--wash);border-radius:var(--r-md);box-shadow:var(--shadow-2);padding:24px 28px 24px 36px;margin:0 0 64px;transition:background-color var(--t-state) var(--ease)}
-.status::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;border-radius:var(--r-md) 0 0 var(--r-md);background:var(--state);transition:background-color var(--t-state) var(--ease)}
-body[data-level=healthy]{--state:var(--ok);--wash:var(--ok-wash)}
-body[data-level=caution]{--state:var(--warn);--wash:var(--warn-wash)}
-body[data-level=halt]{--state:var(--bad);--wash:var(--bad-wash)}
-#status-text{font-size:clamp(22px,2.4vw,28px);line-height:1.25;letter-spacing:-.01em;margin:0;max-width:52ch}
-#reasons{list-style:none;margin:12px 0 0;padding:0}
-#reasons:empty{display:none}
-#reasons li{display:grid;grid-template-columns:28px auto 1fr;gap:12px;align-items:baseline;padding:4px 0;color:var(--ink-2)}
-#reasons li::before{content:"";border-top:2px solid var(--ink-2);transform:translateY(-4px)}
-#reasons li[data-kind=reported]::before{border-top-style:dashed}
-#reasons code{font:500 13px var(--mono);color:var(--ink)}
-.btn{font:500 15px var(--mono);min-height:44px;padding:0 18px;border:0;border-radius:var(--r-sm);background:var(--ink);color:var(--paper);cursor:pointer;margin-top:16px;box-shadow:var(--shadow-1);transition:transform var(--t-hover) var(--ease),box-shadow var(--t-hover) var(--ease)}
-@media (hover:hover){.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-2)}}
-.btn:active{transform:scale(.97);transition-duration:var(--t-press)}
-.btn[hidden]{display:none}
-
-/* sections */
-section{margin:0 0 72px}
-h2{font-weight:500;font-size:24px;line-height:1.2;letter-spacing:-.015em;margin:0 0 16px}
-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-th{font:500 12px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:8px 16px 8px 0;border-bottom:1px solid var(--rule)}
-td{padding:12px 16px 12px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
-.v,.m{font:400 15px/1.5 var(--mono)}
-.m a{white-space:nowrap}
-/* motif, medium scale (Kind stroke) */
-.kind{display:inline-flex;align-items:baseline;gap:10px;color:var(--ink-2);font-size:15px;line-height:1.35}
-.kind::before{content:"";flex:none;width:28px;border-top:2px solid var(--ink);transform:translateY(-4px)}
-.kind.reported::before{border-top-style:dashed}
-
-.backing{display:grid;grid-template-columns:7fr 4fr;gap:48px;align-items:start}
-#backing-line{font-size:clamp(19px,2vw,22px);line-height:1.55;margin:0}
-/* motif, small scale (dashed underline under reported figures) */
-.fig{font:400 .84em var(--mono);border-bottom:2px dashed var(--ink-3);padding-bottom:1px;white-space:nowrap}
-.source{padding-top:40px}
-.hash{font:400 13px/1.6 var(--mono);word-break:break-all;color:var(--ink-2);margin:12px 0 0}
-
-.code{background:var(--sheet);box-shadow:var(--shadow-2);border-radius:var(--r-md);padding:20px;overflow-x:auto;font:400 14px/1.65 var(--mono);margin:0;-webkit-overflow-scrolling:touch}
-.code .c{color:var(--ink-3)}
-.links{font:400 13px/1.6 var(--mono);color:var(--ink-3);margin:12px 0 0;display:flex;flex-wrap:wrap;gap:4px 16px}
-.links a{display:inline-flex;align-items:center;min-height:32px}
-
-.limits ol{margin:0;padding:0;list-style:none;counter-reset:l}
-.limits li{counter-increment:l;font-size:clamp(19px,2vw,23px);line-height:1.4;padding:16px 0;border-top:1px solid var(--rule);display:grid;grid-template-columns:48px 1fr;max-width:62ch}
-.limits li::before{content:"0" counter(l);font:500 13px/2.2 var(--mono);color:var(--ink-3)}
-
-footer{padding:32px 0 48px;color:var(--ink-2);font-size:15px;border-top:1px solid var(--rule)}
-body[data-stale="1"] [data-v],body[data-stale="1"] #backing-line,body[data-stale="1"] #minters{opacity:.55}
-
-@media (max-width:760px){
-  body{font-size:16px}
-  .top,.backing{grid-template-columns:1fr;gap:16px}
-  .top{padding-top:40px}
-  .status{padding:20px 16px 20px 24px;margin-bottom:48px}
-  .source{padding-top:0}
-  section{margin-bottom:56px}
-  .read thead{display:none}
-  .read tr{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--rule)}
-  .read td{border:0;padding:0}
-  .read td.label{grid-column:1}
-  .read td.v{grid-column:2;grid-row:1;text-align:right}
-  .read td.k,.read td.m{grid-column:1 / -1}
-  .read td.m{font-size:13px}
-  .mint thead{display:none}
-  .mint tr{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--rule)}
-  .mint td{border:0;padding:0}
-  .mint td:nth-child(2){text-align:right}
-  .mint td:nth-child(3){grid-column:1 / -1;text-align:right;color:var(--ink-2)}
-  .code{font-size:13px;padding:16px}
-  .limits li{grid-template-columns:36px 1fr}
-}
-@media (prefers-reduced-motion:reduce){*,*::before{transition-duration:.01ms!important}}
-  code, pre { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
 </style>
 </head>
 <body>
 <div class="wrap">
+<main>
 <header class="top">
-  <div>
-    <h1>Cordon watches Paxos' side of USDG and tells lending markets when to <em>stop.</em></h1>
-    <p class="sub">A guard any contract can ask in the same transaction. It reads the chain itself where it can, and says so where it cannot.</p>
-  </div>
-  <div class="meta">
-    <span id="read-meta">…</span>
-    <a class="cta" href="use.html">Use it in your market</a>
-    <a class="cta" href="replay.html">See it stop a bad mint</a>
-  </div>
+  <h1>A circuit breaker for Paxos USDG that lending markets ask in the same transaction.</h1>
+  <p class="sub">Cordon reads Paxos' USDG contracts on Robinhood Chain. Only a supply jump read from the chain can make it halt. No key we hold can.</p>
 </header>
 
-<div class="status" id="status" aria-live="polite">
-  <p id="status-text">Reading Robinhood Chain…</p>
-  <ul id="reasons"></ul>
-  <button class="btn" id="retry" type="button" hidden>Try again</button>
+<div class="hero">
+  <div class="sheet bg" aria-hidden="true"></div>
+  <div class="verdict" id="status" aria-live="polite">
+    <p id="status-text"><span id="status-word"></span><span id="status-rest">Reading Robinhood Chain…</span></p>
+    <ul id="reasons"></ul>
+    <button class="btn" id="retry" type="button" hidden>Try again</button>
+  </div>
+  <div class="gauges" aria-label="USDG supply change against the two snapshots">
+    <div class="g-row">
+      <div class="g-head"><span class="g-cap">Against the hourly snapshot</span><span class="g-val" id="val-hourly" data-v="hourly">…</span></div>
+      <div class="gauge" style="--lo:-10;--hi:40;--t:15;--r:25">
+        <span class="g-bar" id="bar-hourly" hidden></span>
+        <span class="g-tick"></span><span class="g-rule"></span>
+      </div>
+    </div>
+    <div class="g-row has-lab">
+      <div class="g-head"><span class="g-cap">Against the daily anchor</span><span class="g-val" id="val-daily" data-v="daily">…</span></div>
+      <div class="gauge" style="--lo:-10;--hi:40;--t:15;--r:25;--d:90ms">
+        <span class="g-bar" id="bar-daily" hidden></span>
+        <span class="g-tick"></span><span class="g-rule"></span>
+        <span class="g-lab t end">Caution at +15%</span><span class="g-lab r">Halt at +25%</span>
+      </div>
+    </div>
+  </div>
+  <div class="side">
+    <span class="label">USDG supply on Robinhood Chain</span>
+    <div id="supply" data-v="supplyBig">…</div>
+    <a class="btn" href="use.html">Guard a market</a><br>
+    <a class="link-2" href="replay.html">See it stop a bad mint</a>
+    <p class="lastread in-side">…</p>
+  </div>
+  <p class="lastread after">…</p>
 </div>
 
-<main>
 <section class="read">
+<h2>What we read</h2>
 <table>
 <thead><tr><th>What we read</th><th>Kind</th><th>Value</th><th>Read from</th></tr></thead>
 <tbody>
-<tr><td class="label">Supply on this chain</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="supply">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" title="0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168">0x5fc5…d168</a></td></tr>
-<tr><td class="label">Supply, 1 h change</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="change">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25" title="0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">0x469C…dF25</a></td></tr>
-<tr><td class="label">Snapshots</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="snapshots">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25" title="0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">0x469C…dF25</a></td></tr>
-<tr><td class="label">Release of a halt</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="release">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25" title="0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">0x469C…dF25</a></td></tr>
-<tr><td class="label">Minter set</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="minters">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4" title="0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4">0xdf5F…25D4</a></td></tr>
-<tr><td class="label">Admin transfer</td><td class="k"><span class="kind">Read from the chain</span></td><td class="v" data-v="admin">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" title="0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168">0x5fc5…d168</a> <a href="https://robinhoodchain.blockscout.com/address/0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4" title="0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4">0xdf5F…25D4</a></td></tr>
-<tr><td class="label">Report age</td><td class="k"><span class="kind reported">Posted by our reporter from the KPMG report</span></td><td class="v" data-v="age">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25" title="0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">0x469C…dF25</a></td></tr>
+<tr><td class="rl">Supply on this chain</td><td class="k">Read from the chain</td><td class="v" data-v="supply">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" title="0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168">0x5fc5…d168</a></td></tr>
+<tr><td class="rl">Supply, 1 h change</td><td class="k">Read from the chain</td><td class="v" data-v="change">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25" title="0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">0x469C…dF25</a></td></tr>
+<tr><td class="rl">Snapshots</td><td class="k">Read from the chain</td><td class="v" data-v="snapshots">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25" title="0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">0x469C…dF25</a></td></tr>
+<tr><td class="rl">Release of a halt</td><td class="k">Read from the chain</td><td class="v" data-v="release">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25" title="0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">0x469C…dF25</a></td></tr>
+<tr><td class="rl">Minter set</td><td class="k">Read from the chain</td><td class="v" data-v="minters">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4" title="0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4">0xdf5F…25D4</a></td></tr>
+<tr><td class="rl">Admin transfer</td><td class="k">Read from the chain</td><td class="v" data-v="admin">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" title="0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168">0x5fc5…d168</a> <a href="https://robinhoodchain.blockscout.com/address/0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4" title="0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4">0xdf5F…25D4</a></td></tr>
+<tr><td class="rl">Report age</td><td class="k">Posted by our reporter</td><td class="v" data-v="age">…</td><td class="m"><a href="https://robinhoodchain.blockscout.com/address/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25" title="0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">0x469C…dF25</a></td></tr>
 </tbody>
 </table>
 </section>
 
-<section class="backing">
-  <div>
-    <h2>Backing, as attested</h2>
-    <p id="backing-line">…</p>
+<section>
+<h2>Why 25%</h2>
+<p>We decoded every USDG mint (12,414) and burn (9,047) on Robinhood Chain since launch. Once supply passed 300M, the largest real rise was +11.9% in an hour, +13.2% in a day and +20.4% in two days. Halt sits at +25%.</p>
+<div class="gauges plain" aria-label="Largest real rises against the halt line">
+  <div class="g-row">
+    <div class="g-head"><span class="g-cap">Largest rise in an hour</span><span class="g-val">+11.9%</span></div>
+    <div class="gauge" data-static style="--lo:0;--hi:40;--t:25;--r:25"><span class="g-bar" style="--a:0;--b:11.9"></span><span class="g-rule"></span></div>
   </div>
-  <div class="source">
-    <span class="kind reported">Posted by our reporter from the KPMG report</span>
-    <p class="hash"><a id="report-link" href="https://framerusercontent.com/assets/Xn1UQwAte85FnsDveIMX0n1qtVM.pdf">…</a><br><span id="report-sha">…</span></p>
+  <div class="g-row">
+    <div class="g-head"><span class="g-cap">In a day</span><span class="g-val">+13.2%</span></div>
+    <div class="gauge" data-static style="--lo:0;--hi:40;--t:25;--r:25;--d:90ms"><span class="g-bar" style="--a:0;--b:13.2"></span><span class="g-rule"></span></div>
   </div>
+  <div class="g-row has-lab">
+    <div class="g-head"><span class="g-cap">In two days</span><span class="g-val">+20.4%</span></div>
+    <div class="gauge" data-static style="--lo:0;--hi:40;--t:25;--r:25;--d:180ms"><span class="g-bar" style="--a:0;--b:20.4"></span><span class="g-rule"></span><span class="g-lab r">Halt at +25%</span></div>
+  </div>
+</div>
 </section>
 
-<section class="mint">
+<section>
+<h2>Backing, as attested</h2>
+<p id="backing-line">…</p>
+<div class="gauges plain" aria-label="Reserves as a share of tokens outstanding">
+  <div class="g-row has-lab">
+    <div class="g-head"><span class="g-cap">Reserves, as posted</span><span class="g-val" id="val-backing" data-v="backing">…</span></div>
+    <div class="gauge" style="--lo:98;--hi:102;--t:100;--r:100">
+      <span class="g-bar posted" id="bar-backing" hidden></span><span class="g-rule"></span><span class="g-lab r">Tokens outstanding</span>
+    </div>
+  </div>
+</div>
+<p class="proof"><a id="report-link" href="https://framerusercontent.com/assets/Xn1UQwAte85FnsDveIMX0n1qtVM.pdf">…</a><br><span id="report-sha">…</span></p>
+</section>
+
+<section>
 <h2>Who can mint USDG on Robinhood Chain</h2>
-<table>
-<thead><tr><th>Controller</th><th>Cap</th><th>Refill per second</th></tr></thead>
-<tbody id="minters"><tr><td class="m">…</td><td class="v">…</td><td class="v">…</td></tr></tbody>
-</table>
+<div class="gauges plain" id="minters" aria-label="Each minter's cap as a share of today's supply"><div class="g-row"><div class="g-head"><span class="g-cap">…</span><span class="g-val">…</span></div></div></div>
 </section>
 
 <section>
 <h2>Use it in a Morpho market</h2>
-<p class="sub">Wrap the oracle of any market that takes USDG as collateral, then create the same market with the wrapper. <a href="use.html">Do it from your wallet</a>, or call the factory yourself:</p>
+<p>Wrap the oracle of any market that takes USDG as collateral, then create the same market with the wrapper. The guard-a-market page does both from your wallet.</p>
+<a class="btn use-btn" href="use.html">Guard a market</a>
 <pre class="code"><code>CordonOracleFactory(0x5fd6b1Bf1871BD987c5c5AC451AaDeC7e70679De)
-    .create(IOracle(&lt;market's existing oracle&gt;), &lt;discount, 1 to 5000 bps&gt;)
-
-<span class="c">// Robinhood Chain (4663)
-// CordonGuard          0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25
-// CordonOracleFactory  0x5fd6b1Bf1871BD987c5c5AC451AaDeC7e70679De
-// Reference market     NVDA loan, USDG collateral, LLTV 62.5%, discount 5000 bps
-//   oracle             0xaDE3788c6BD7531dD3C424C3A09527175D4F7F82
-//   market id          0x10b972d007b83b91ac0846339f829ccdbe06eb03aebe99eef661748e23843af6
-// Arbitrum Sepolia (421614)
-// CordonGuard          0xAdEa3FaE6011c2D275868d1c1933B37BE7648269
-// CordonOracleFactory  0xAf7c0Dcee32C08a4b705e32C8F0E6599f1f3B1d5</span></code></pre>
+    .create(IOracle(&lt;market's existing oracle&gt;), &lt;discount, 1 to 5000 bps&gt;)</code></pre>
+<dl class="addr">
+  <dt>Robinhood Chain (4663)</dt><dd></dd>
+  <dt>CordonGuard</dt><dd>0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25</dd>
+  <dt>CordonOracleFactory</dt><dd>0x5fd6b1Bf1871BD987c5c5AC451AaDeC7e70679De</dd>
+  <dt>Reference market</dt><dd>NVDA loan, USDG collateral, LLTV 62.5%, discount 5000 bps</dd>
+  <dt>Its oracle</dt><dd>0xaDE3788c6BD7531dD3C424C3A09527175D4F7F82</dd>
+  <dt>Its market id</dt><dd>0x10b972d007b83b91ac0846339f829ccdbe06eb03aebe99eef661748e23843af6</dd>
+  <dt>Arbitrum Sepolia (421614)</dt><dd></dd>
+  <dt>CordonGuard</dt><dd>0xAdEa3FaE6011c2D275868d1c1933B37BE7648269</dd>
+  <dt>CordonOracleFactory</dt><dd>0xAf7c0Dcee32C08a4b705e32C8F0E6599f1f3B1d5</dd>
+</dl>
 <p class="links">
-  <span>CordonGuard <a href="https://robinhoodchain.blockscout.com/address/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">Blockscout</a> <a href="https://repo.sourcify.dev/4663/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">Sourcify</a></span>
-  <span>CordonOracleFactory <a href="https://robinhoodchain.blockscout.com/address/0x5fd6b1Bf1871BD987c5c5AC451AaDeC7e70679De">Blockscout</a> <a href="https://repo.sourcify.dev/4663/0x5fd6b1Bf1871BD987c5c5AC451AaDeC7e70679De">Sourcify</a></span>
+  <span>CordonGuard: <a href="https://robinhoodchain.blockscout.com/address/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">Blockscout</a>, <a href="https://repo.sourcify.dev/4663/0x469C46486d44eE02BB5A8d4FE341e55d13f5dF25">Sourcify</a></span>
+  <span>CordonOracleFactory: <a href="https://robinhoodchain.blockscout.com/address/0x5fd6b1Bf1871BD987c5c5AC451AaDeC7e70679De">Blockscout</a>, <a href="https://repo.sourcify.dev/4663/0x5fd6b1Bf1871BD987c5c5AC451AaDeC7e70679De">Sourcify</a></span>
   <span><a href="https://github.com/Yonkoo11/cordon/blob/main/INTEGRATING.md">Integration guide</a></span>
 </p>
 </section>
@@ -197,18 +203,19 @@ body[data-stale="1"] [data-v],body[data-stale="1"] #backing-line,body[data-stale
 <section class="limits">
 <h2>What Cordon does not do</h2>
 <ol>
-<li>It does not prove Paxos' reserves. The reserve figure is KPMG's, posted by us, with the report's hash so anyone can check it.</li>
+<li>It does not prove Paxos' reserves. The reserve figure is KPMG's, posted by us with the report's hash so anyone can check it.</li>
 <li>It does not see other chains. A problem minted on Ethereum or Solana is not in these checks.</li>
-<li>It cannot see contract upgrades; USDG exposes no way to read them onchain.</li>
+<li>It cannot see contract upgrades; USDG exposes no way to read them on chain.</li>
 <li>It does not protect money held in USDG. It protects people who accept USDG for something else.</li>
 <li>It never blocks repaying, withdrawing or liquidating.</li>
-<li>No key we hold can cause a HALT. Only a supply jump read from the chain can. Our report figures can raise CAUTION, which never changes a price.</li>
-<li>A large legitimate move, such as bridging a quarter of the supply in at once, also trips HALT. The owner can release it only after six hours of public notice, and only if supply has not grown since.</li>
+<li>No key we hold can cause a HALT. Only a supply jump read from the chain can. Checked by <a href="https://github.com/Yonkoo11/cordon/blob/main/test/halmos/CordonGuard.halmos.t.sol">5 symbolic proofs</a> and <a href="https://github.com/Yonkoo11/cordon/blob/main/test/invariant/CordonGuard.invariant.t.sol">6 random-sequence tests</a> on every change.</li>
+<li>Someone holding about a quarter of the chain's USDG can trip HALT by bridging it out and back in. The discount a market picks limits what that costs borrowers.</li>
+<li>A large legitimate move, such as a big bridge-in, also trips HALT. The owner can release it only after six hours of public notice, and only if supply has not grown since.</li>
 </ol>
 </section>
 </main>
 
-<footer>Not affiliated with Paxos or Robinhood. Source: <a href="https://github.com/Yonkoo11/cordon">github.com/Yonkoo11/cordon</a></footer>
+<footer>Not affiliated with Paxos, Robinhood or Morpho. Source: <a href="https://github.com/Yonkoo11/cordon">github.com/Yonkoo11/cordon</a></footer>
 </div>
 <script type="module" src="chain.js"></script>
 </body>

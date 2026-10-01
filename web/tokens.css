@@ -1,0 +1,217 @@
+/* Cordon design tokens and shared components. Three tiers: base scale, semantic, components.
+   Components read semantic tokens only. Raw colour values live in the base tier and nowhere else. */
+
+/* ---------- tier 1: base scale ---------- */
+:root {
+  --c-ground: #F6F7F9;
+  --c-sheet: #FFFFFF;
+  --c-ink: #14171C;
+  --c-ink-2: rgba(20, 23, 28, .70);
+  --c-ink-3: rgba(20, 23, 28, .52);
+  --c-rule: rgba(20, 23, 28, .12);
+  --c-track: rgba(20, 23, 28, .08);
+  --c-accent: #2347C8;
+  --c-accent-ink: #FFFFFF;
+  --c-healthy: #1D7A45;
+  --c-caution: #8F5C00;
+  --c-halt: #B3261E;
+
+  --f-text: "Public Sans", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+
+  --r-track: 2px;
+  --r-control: 6px;
+  --r-card: 10px;
+
+  --ease: cubic-bezier(.23, 1, .32, 1);
+  --t: 180ms;
+  --t-press: 120ms;
+  --t-enter: 600ms;
+
+  --shadow: 0 1px 2px rgba(20, 23, 28, .06), 0 6px 16px -8px rgba(20, 23, 28, .14);
+  --shadow-up: 0 1px 2px rgba(20, 23, 28, .08), 0 10px 24px -10px rgba(20, 23, 28, .22);
+}
+
+/* ---------- tier 2: semantic ---------- */
+:root {
+  --ground: var(--c-ground);
+  --surface: var(--c-sheet);
+  --ink-1: var(--c-ink);
+  --ink-2: var(--c-ink-2);
+  --ink-3: var(--c-ink-3);
+  --rule: var(--c-rule);
+  --track: var(--c-track);
+  --accent: var(--c-accent);
+  --accent-ink: var(--c-accent-ink);
+  --caution: var(--c-caution);
+  --halt: var(--c-halt);
+  --line: var(--c-accent);
+  --state: var(--ink-3);
+}
+body[data-level="healthy"] { --state: var(--c-healthy); }
+body[data-level="caution"] { --state: var(--c-caution); }
+body[data-level="halt"] { --state: var(--c-halt); }
+
+/* ---------- tier 3: base elements ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink-1);
+  font: 400 16px/1.55 var(--f-text);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 var(--s-6); }
+h1 { font-weight: 450; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.1; letter-spacing: -.02em; margin: 0; }
+h2 { font-weight: 600; font-size: 20px; line-height: 1.4; letter-spacing: -.005em; margin: 0 0 var(--s-3); }
+p { margin: 0; }
+code, pre, .mono { font-family: var(--f-mono); font-variant-ligatures: none; }
+.sub { color: var(--ink-2); max-width: 60ch; }
+.label { font-size: 13px; font-weight: 500; line-height: 1.4; color: var(--ink-2); }
+.note { font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+
+a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--rule);
+  transition: text-decoration-color var(--t) var(--ease);
+}
+@media (hover: hover) { a:hover { text-decoration-color: var(--ink-1); } }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+main > section { margin-top: var(--s-8); }
+main > section > p { max-width: 68ch; }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font: 600 16px/1 var(--f-text);
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+@media (hover: hover) { .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-up); } }
+.btn:active:not(:disabled) { transform: scale(.98); transition-duration: var(--t-press); }
+.btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+.btn[hidden] { display: none; }
+.link-2 { display: inline-flex; align-items: center; min-height: 44px; }
+
+/* ---------- sheets, code, footer ---------- */
+.sheet { background: var(--surface); box-shadow: var(--shadow); border-radius: var(--r-card); padding: var(--s-5); }
+pre.code {
+  margin: var(--s-4) 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  border-radius: var(--r-card);
+  padding: var(--s-5);
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.65;
+  -webkit-overflow-scrolling: touch;
+}
+footer { margin-top: var(--s-8); padding: var(--s-6) 0 var(--s-7); border-top: 1px solid var(--rule); color: var(--ink-2); overflow-wrap: anywhere; }
+
+/* ---------- the line: .gauge ----------
+   .gauge is the track. 1 --gu is 1% of its own width, so every position is calc(<domain %> * var(--gu)).
+   Set --lo and --hi (the domain), --t (tick) and --r (rule) in domain units. A bar sets --a and --b. */
+.g-row { padding: var(--s-2) 0; }
+.g-row.has-lab { padding-bottom: 36px; }
+.g-row.has-lab.stack { padding-bottom: 56px; }
+.g-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-3); margin-bottom: var(--s-2); }
+.g-cap { font-size: 13px; font-weight: 500; line-height: 1.4; color: var(--ink-2); min-width: 0; overflow-wrap: anywhere; }
+.g-cap .g-id { display: block; font: 400 16px/1.4 var(--f-mono); color: var(--ink-1); }
+.g-val { font: 500 28px/1.15 var(--f-mono); letter-spacing: -.01em; color: var(--ink-1); white-space: nowrap; text-align: right; }
+.g-val.words { font: 500 13px/1.4 var(--f-text); letter-spacing: 0; color: var(--ink-2); }
+
+.gauge {
+  --lo: 0; --hi: 100; --t: 100000; --r: 100000;
+  --gu: calc(100cqw / 100);
+  container-type: inline-size;
+  position: relative;
+  height: 12px;
+  margin: var(--s-2) 0;
+  background: var(--track);
+  border-radius: var(--r-track);
+}
+.g-bar, .g-rule, .g-tick, .g-lab {
+  --x: calc((var(--p) - var(--lo)) / (var(--hi) - var(--lo)) * 100 * var(--gu));
+}
+.g-rule { --p: var(--r); position: absolute; left: var(--x); top: -8px; width: 2px; height: 28px; margin-left: -1px; background: var(--line); }
+.g-tick { --p: var(--t); position: absolute; left: var(--x); top: -4px; width: 1px; height: 20px; background: var(--ink-3); }
+.g-lab { position: absolute; left: var(--x); top: 24px; font-size: 13px; font-weight: 500; line-height: 1.4; color: var(--ink-2); white-space: nowrap; }
+.g-lab.t { --p: var(--t); }
+.g-lab.r { --p: var(--r); }
+.g-lab.end { transform: translateX(-100%); }
+.g-lab.low { top: 44px; white-space: normal; max-width: calc(100cqw - var(--x)); }
+
+.g-bar {
+  --xa: calc((var(--a) - var(--lo)) / (var(--hi) - var(--lo)) * 100 * var(--gu));
+  --xb: calc((var(--b) - var(--lo)) / (var(--hi) - var(--lo)) * 100 * var(--gu));
+  --tx: calc((var(--t) - var(--lo)) / (var(--hi) - var(--lo)) * 100 * var(--gu));
+  --rx: calc((var(--r) - var(--lo)) / (var(--hi) - var(--lo)) * 100 * var(--gu));
+  position: absolute;
+  top: 0;
+  left: var(--xa);
+  width: calc(var(--xb) - var(--xa));
+  height: 12px;
+  border-radius: var(--r-track);
+  background-image: linear-gradient(90deg, var(--ink-1) 0, var(--ink-1) var(--tx), var(--caution) var(--tx), var(--caution) var(--rx), var(--halt) var(--rx), var(--halt) 100cqw);
+  background-repeat: no-repeat;
+  background-size: calc(100 * var(--gu)) 100%;
+  background-position-x: calc(-1 * var(--xa));
+  transform-origin: left center;
+  transform: scaleX(0);
+  visibility: hidden;
+}
+.g-bar.neg { transform-origin: right center; }
+/* the value marker: where the reading sits, visible even when the change is 0 */
+.g-bar::after { content: ""; position: absolute; top: -4px; right: -1px; width: 2px; height: 20px; background: var(--ink-1); }
+.g-bar.neg::after { right: auto; left: -1px; }
+.g-bar.posted::after { top: -6px; }
+.g-bar.over { clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 50%, 100% 100%, 0 100%); }
+.g-bar.over-l { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 6px 50%); }
+.g-bar.posted {
+  background: none;
+  border: 2px dashed var(--ink-1);
+}
+.g-bar.posted.low { border-color: var(--halt); }
+.gauge.read .g-bar {
+  visibility: visible;
+  transform: scaleX(1);
+  transition: transform var(--t-enter) var(--ease) var(--d, 0ms);
+}
+
+@media (max-width: 760px) {
+  .wrap { padding: 0 var(--s-4); }
+  main > section { margin-top: var(--s-7); }
+  .g-val { font-size: 20px; }
+  .sheet { padding: var(--s-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  .g-bar { transform: none !important; }
+}
