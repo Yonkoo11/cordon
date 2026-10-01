@@ -12,6 +12,16 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
       - run: forge build
       - run: forge test --no-match-path "test/fork/*" -vv
+  halmos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      # pinned: newer forge builds call vm.deployCode in tests, which halmos 0.3.3 does not support
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.4.4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
