@@ -24,7 +24,7 @@ Built for the Arbitrum Open House Singapore Buildathon (Overall and Promising Pr
 
 | The live page, reading Robinhood Chain mainnet in the browser (CAUTION: no baseline in the last two hours) | The same page with only the guard's `status()` answer replaced by HALT, to show that state (simulated) | The fork test output, published as is |
 |---|---|---|
-| ![live page](design/shots/cordon-live-caution-1440.png) | ![simulated halt](design/shots/cordon-halt-simulated-1440.png) | ![replay](design/shots/cordon-replay-1440.png) |
+| ![live page](docs/images/live-caution.png) | ![simulated halt](docs/images/halt-simulated.png) | ![replay](docs/images/replay.png) |
 
 ---
 

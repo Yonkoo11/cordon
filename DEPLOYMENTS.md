@@ -7,8 +7,8 @@ All source verified on Sourcify (exact match). Deployer and reporter: 0xf9946775
 | Contract | Address | Tx (block) |
 |---|---|---|
 | CordonGuard (USDG 0x5fc5…d168) | 0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541 | 0xe5f0c49b5b767005b52a61eca0ef0b30446192107a95a0949da33ca116ec370f (77155919) |
-| postAttestation, KPMG 2026-08-31 | — | 0xcaf4db9b5063292e736ce1d4bbc3aa777c619c19c3574db34322646db8815086 (77155949) |
-| first checkpoint | — | 0xda9d7ef6b3cb1d8cea6a38cd3ef46c78ed7e368b64e4bca76f2ac0a8b8ea5aab (77155978) |
+| postAttestation, KPMG 2026-08-31 | n/a | 0xcaf4db9b5063292e736ce1d4bbc3aa777c619c19c3574db34322646db8815086 (77155949) |
+| first checkpoint | n/a | 0xda9d7ef6b3cb1d8cea6a38cd3ef46c78ed7e368b64e4bca76f2ac0a8b8ea5aab (77155978) |
 | CordonMorphoOracle (base: live NVDA/USDG oracle 0x5481…7A10, discount 5000 bps) | 0x52FB7D121e576D8B0b06dD6fcA6C3D7454e7bf5C | 0x35a512a79a25ebe24b3cd559a8324e0b9f5ada290b8f05a0947f61e6ff499757 (77156160) |
 | Morpho market: USDG collateral, NVDA loan, LLTV 0.625, IRM 0x2BD3…0fa1 | id 0x3a8f9ccf25583b6216f553d5d8b1a2c981818b2df61febf48d60080e6850c4cc | 0x61d1776f9ce90d589d6dcd047df60b7a2a290041f4cf0aea43c90e650d909eb9 (77156190) |
 

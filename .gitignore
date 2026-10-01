@@ -1,5 +1,3 @@
-ai/
-CLAUDE.md
 .env*
 node_modules/
 out/
@@ -38,4 +36,11 @@ deployments/local-*.json
 probe/reports/*.pdf
 probe/*.sol
 probe/mints.jsonl
-REGISTRATION.md
+
+# Local
+.env.local
+.env*.local
+build/
+*.log
+.vercel
+.claude/
