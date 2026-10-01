@@ -1,0 +1,41 @@
+name: checkpoint
+# Records a USDG supply baseline on the Robinhood Chain guard. checkpoint() is open to anyone and
+# the guard refuses calls less than 30 minutes apart, so this runs often and skips when too soon.
+# KEEPER_KEY holds gas money only; it has no role on the guard.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checkpoint
+  cancel-in-progress: false
+env:
+  GUARD: "0x1F82E5aB72B6Ec93e852533Ed9D021CbF51969AC"
+  RPC: https://rpc.mainnet.chain.robinhood.com
+jobs:
+  checkpoint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: Checkpoint if due
+        env:
+          KEEPER_KEY: ${{ secrets.KEEPER_KEY }}
+        run: |
+          set -u
+          from=$(cast wallet address --private-key "$KEEPER_KEY")
+          for i in 1 2 3; do
+            if out=$(cast call "$GUARD" "checkpoint()" --from "$from" --rpc-url "$RPC" 2>&1); then
+              cast send "$GUARD" "checkpoint()" --private-key "$KEEPER_KEY" --rpc-url "$RPC" --json | jq -r '"checkpointed in tx " + .transactionHash'
+              exit 0
+            fi
+            # 0x80427f67 = CheckpointTooSoon(uint64,uint64): the last baseline is under 30 minutes old
+            if echo "$out" | grep -q -e CheckpointTooSoon -e 0x80427f67; then echo "not due yet"; exit 0; fi
+            echo "attempt $i failed: $out"; sleep 10
+          done
+          exit 1
+      - name: Report guard status
+        if: always()
+        run: echo "status (level, reasons): $(cast call "$GUARD" 'status()(uint8,uint256)' --rpc-url "$RPC" | tr '\n' ' ')"

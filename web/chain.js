@@ -1,6 +1,6 @@
 // Cordon status page: reads Robinhood Chain in the visitor's browser. No wallet, no server.
 const RPC = 'https://rpc.mainnet.chain.robinhood.com';
-const GUARD = '0x5A832cb202aeBa13E50CFc03FF3D4C51462d0541';
+const GUARD = '0x1F82E5aB72B6Ec93e852533Ed9D021CbF51969AC';
 const USDG = '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168';
 const SUPPLY_CONTROL = '0xdf5FfF9cb88B3cAb50572FAE73E2EB08599D25D4';
 const PUBLISHED = '2026-09-25'; // KPMG report publication date; not onchain
@@ -17,18 +17,21 @@ const SEL = {
   pendingDefaultAdmin: '0xcf6eefb7',
   getAllSupplyControllerAddresses: '0x6190bfb0',
   getSupplyControllerConfig: '0xc248f7d6',
+  anchor: '0xd3fb73b4',
+  releaseSupply: '0xa0893ef2',
+  releaseExecutableAt: '0xaa292742',
 };
 
 const STATUS_TEXT = [
   "HEALTHY. Nothing in Paxos' controls or posted backing needs attention.",
   'CAUTION. Something changed that a human should look at. Prices are not touched.',
-  'HALT. A trustless check or the posted backing failed. Markets using Cordon discount USDG collateral.',
+  'HALT. USDG supply on this chain jumped more than 25%, read from the chain itself. Markets using Cordon discount USDG collateral.',
 ];
 const LEVEL_WORD = ['HEALTHY', 'CAUTION', 'HALT'];
 const REASONS = [
-  'Supply on this chain rose more than 25% within an hour.',
+  'Supply on this chain rose more than 25% against the last hour or the last day.',
   'Supply on this chain rose more than 15% within an hour.',
-  'No supply baseline from the last two hours. Anyone can add one.',
+  'No supply snapshot from the last two hours. Anyone can add one by calling checkpoint().',
   'The set of addresses allowed to mint USDG changed.',
   "A change of USDG's admin is scheduled.",
   'The latest posted report shows reserves below tokens outstanding.',
@@ -94,7 +97,7 @@ async function batch(calls, signal) {
 }
 
 async function readAll(signal) {
-  const [statusHex, attHex, bandHex, supplyHex, tokPendHex, scPendHex, ctrlHex, block] = await batch([
+  const [statusHex, attHex, bandHex, supplyHex, tokPendHex, scPendHex, ctrlHex, block, anchorHex, relSupplyHex, relAtHex] = await batch([
     { to: GUARD, data: SEL.status },
     { to: GUARD, data: SEL.latestAttestation },
     { to: GUARD, data: SEL.baselineInBand },
@@ -103,6 +106,9 @@ async function readAll(signal) {
     { to: SUPPLY_CONTROL, data: SEL.pendingDefaultAdmin },
     { to: SUPPLY_CONTROL, data: SEL.getAllSupplyControllerAddresses },
     { method: 'eth_getBlockByNumber', params: ['latest', false] },
+    { to: GUARD, data: SEL.anchor },
+    { to: GUARD, data: SEL.releaseSupply },
+    { to: GUARD, data: SEL.releaseExecutableAt },
   ], signal);
 
   const sw = words(statusHex);
@@ -129,6 +135,8 @@ async function readAll(signal) {
       return { address: a, cap: big(w[0]), refill: big(w[1]) };
     }),
     block: { number: Number(BigInt(block.number)), timestamp: Number(BigInt(block.timestamp)) },
+    anchorAt: Number(big(words(anchorHex)[1])),
+    release: { supply: BigInt(relSupplyHex), at: Number(BigInt(relAtHex)) },
   };
 }
 
@@ -143,6 +151,7 @@ function amount6(v) {
 }
 const isoDate = (sec) => new Date(sec * 1000).toISOString().slice(0, 10);
 const utcTime = (sec) => new Date(sec * 1000).toISOString().slice(11, 19) + ' UTC';
+const ago = (sec) => (sec < 3600 ? Math.round(sec / 60) + ' min' : (sec / 3600).toFixed(1) + ' h') + ' ago';
 const short = (a) => a.slice(0, 6) + '…' + a.slice(-4);
 const ZERO = '0x0000000000000000000000000000000000000000';
 
@@ -197,6 +206,14 @@ function renderData(d) {
   setText('[data-v="minters"]', (changed ? 'changed' : 'unchanged') + ' (' + d.controllers.length + ')');
   const pend = [d.tokenPending, d.controlPending].filter((p) => p.next !== ZERO || p.at > 0);
   setText('[data-v="admin"]', pend.length ? 'pending ' + pend.map((p) => short(p.next)).join(', ') : 'none pending');
+  const now = d.block.timestamp;
+  const snaps = [];
+  snaps.push(d.band.ok ? 'hourly ' + ago(now - d.band.timestamp) : 'no hourly snapshot in range');
+  snaps.push(d.anchorAt > 0 ? 'daily ' + ago(now - d.anchorAt) : 'no daily snapshot');
+  setText('[data-v="snapshots"]', snaps.join(' · '));
+  setText('[data-v="release"]', d.release.supply > 0n
+    ? 'scheduled, can execute at ' + utcTime(d.release.at) + ' ' + isoDate(d.release.at)
+    : 'none scheduled');
   if (a.periodEnd > 0) {
     const days = Math.floor((d.block.timestamp - a.periodEnd) / 86400);
     setText('[data-v="age"]', days + ' days');
