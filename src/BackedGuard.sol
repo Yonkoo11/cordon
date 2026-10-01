@@ -75,6 +75,7 @@ contract BackedGuard {
     error BadParams();
     error PeriodNotIncreasing(uint64 last, uint64 next);
     error CheckpointTooSoon(uint64 newest, uint64 now_);
+    error SupplyTooLarge(uint256 supply);
 
     constructor(
         IPaxosToken token_,
@@ -110,12 +111,13 @@ contract BackedGuard {
     function checkpoint() external {
         uint64 nowTs = uint64(block.timestamp);
         Baseline memory newest = _slots[_newest];
-        if (newest.timestamp != 0 && nowTs - newest.timestamp < baselineMinAge) {
+        if (newest.timestamp > 0 && nowTs - newest.timestamp < baselineMinAge) {
             revert CheckpointTooSoon(newest.timestamp, nowTs);
         }
         uint256 supply = token.totalSupply();
+        if (supply > type(uint128).max) revert SupplyTooLarge(supply);
         _updateLatch(supply);
-        uint8 next = _newest ^ 1;
+        uint8 next = _newest == 0 ? 1 : 0;
         _slots[next] = Baseline(uint128(supply), nowTs);
         _newest = next;
         emit Checkpointed(supply, nowTs);
@@ -165,7 +167,7 @@ contract BackedGuard {
     function baselineInBand() public view returns (bool ok, Baseline memory b) {
         for (uint256 i; i < 2; ++i) {
             Baseline memory s = _slots[i];
-            if (s.timestamp == 0) continue;
+            if (s.timestamp < 1) continue; // slot never written
             uint256 age = block.timestamp - s.timestamp;
             if (age < baselineMinAge || age > baselineMaxAge) continue;
             if (!ok || s.timestamp < b.timestamp) (ok, b) = (true, s);
@@ -188,9 +190,10 @@ contract BackedGuard {
 
     function _controlReasons() internal view returns (uint256 reasons) {
         if (_controllerHash() != controllerSetHash) reasons |= MINTER_SET_CHANGED;
-        (address tokenPending,) = token.pendingDefaultAdmin();
-        (address controlPending,) = supplyControl.pendingDefaultAdmin();
-        if (tokenPending != address(0) || controlPending != address(0)) reasons |= ADMIN_TRANSFER_PENDING;
+        (address tokenNext, uint48 tokenAt) = token.pendingDefaultAdmin();
+        (address controlNext, uint48 controlAt) = supplyControl.pendingDefaultAdmin();
+        bool pending = tokenNext != address(0) || tokenAt > 0 || controlNext != address(0) || controlAt > 0;
+        if (pending) reasons |= ADMIN_TRANSFER_PENDING;
     }
 
     function _reportedReasons(uint256 supply) internal view returns (uint256 reasons) {
@@ -211,7 +214,7 @@ contract BackedGuard {
         }
         (bool ok, Baseline memory b) = baselineInBand();
         if (ok && _above(supply, b.supply, jumpHaltBps)) {
-            latchedBaseline = b.supply;
+            latchedBaseline = b.supply; // b.supply was range-checked when stored
             emit JumpLatched(b.supply, supply);
         }
     }
